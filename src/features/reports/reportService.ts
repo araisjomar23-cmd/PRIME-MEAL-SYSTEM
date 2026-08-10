@@ -50,7 +50,7 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
   const activityIds = (activities || []).map((a: any) => a.id)
 
   const { data: regs } = await supabase
-    .from('registrations')
+    .from('registration_details')
     .select('id, activity_id, status, gender_identity, age_bracket, barangay')
     .in('activity_id', activityIds.length ? activityIds : ['none'])
 

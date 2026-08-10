@@ -5,7 +5,7 @@ import { loadTodayLog, markAttendance } from '../../features/attendance/attendan
 import type { Activity } from '../../types/activity'
 import type { AttendanceLogRow } from '../../features/attendance/attendanceService'
 import type { MarkAttendanceResult } from '../../features/attendance/attendanceService'
-import { ClipboardList, Download } from 'lucide-react'
+import { ClipboardList, Download, ArrowLeft } from 'lucide-react'
 import { QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { SkeletonCard } from '../../components/Skeleton'
 import { supabase } from '../../lib/supabase'
@@ -26,33 +26,34 @@ function AdminAttendance() {
   const [dayNumber, setDayNumber] = useState(1)
   const [scanResult, setScanResult] = useState<MarkAttendanceResult | null>(null)
   const [checking, setChecking] = useState(false)
+  const [selectedQrActivityId, setSelectedQrActivityId] = useState<string | null>(null)
 
   useEffect(() => {
-  init()
+    init()
 
-  const channel = supabase
-    .channel('attendance-log-changes')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'attendance_log' },
-      async () => {
-        const logData = await loadTodayLog()
-        setLog(logData)
-      }
-    )
-    .subscribe()
+    const channel = supabase
+      .channel('attendance-log-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'attendance_log' },
+        async () => {
+          const logData = await loadTodayLog()
+          setLog(logData)
+        }
+      )
+      .subscribe()
 
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [])
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   async function init() {
-  const [acts, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
-  setActivities(acts)
-  setLog(logData)
-  setInitialLoading(false)
-}
+    const [acts, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
+    setActivities(acts)
+    setLog(logData)
+    setInitialLoading(false)
+  }
 
   async function handleMark() {
     if (checking) return
@@ -84,25 +85,27 @@ function AdminAttendance() {
   }
 
   const scannableActivities = activities.filter((a) => a.status !== 'closed')
+  const selectedQrActivity = selectedQrActivityId
+    ? activities.find((a) => a.id === selectedQrActivityId) || null
+    : null
 
   if (initialLoading) {
+    return (
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl font-bold text-primary mb-6">Attendance & QR</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold text-primary mb-6">Attendance & QR</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SkeletonCard lines={3} />
-        <SkeletonCard lines={3} />
-      </div>
-    </div>
-  )
-}
 
-return (
-  <div className="p-4 md:p-8">
-    <h1 className="text-2xl font-bold text-primary mb-6">Attendance & QR</h1>
-
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-       
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="panel p-4 sm:p-5">
           <h2 className="text-base font-bold text-gray-900 mb-4">Mark Attendance</h2>
 
@@ -156,7 +159,7 @@ return (
               <CheckCircle2 size={18} />
               {checking ? 'Checking…' : 'Mark Attendance'}
             </button>
-            </div>
+          </div>
 
           {scanResult && (
             <div
@@ -189,7 +192,7 @@ return (
             {log.length === 0 ? (
               <div className="text-center text-gray-400 text-sm py-10">
                 <ClipboardList size={28} className="mx-auto mb-2 text-gray-300" />
-                  No scans recorded today yet.
+                No scans recorded today yet.
               </div>
             ) : (
               log.map((row, i) => (
@@ -226,37 +229,80 @@ return (
       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
         <QrCode size={20} /> Activity QR Codes
       </h2>
+
       {activities.length === 0 ? (
         <p className="text-sm text-gray-400">No activities found.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {activities.map((a) => (
-            <div key={a.id} className="panel p-4 flex flex-col items-center text-center">
+            <button
+              key={a.id}
+              onClick={() => setSelectedQrActivityId(a.id)}
+              className="panel p-4 flex flex-col items-center text-center hover:shadow-md hover:border-primary/30 transition-all"
+            >
               <div className="text-sm font-bold text-gray-900">{a.title}</div>
-              <div className="text-xs text-gray-400 mb-3">{a.date} · {a.venue}</div>
-              <div className="p-2 bg-white">
-                <QRCodeCanvas
-                  id={`qr-canvas-${a.id}`}
-                  value={`${window.location.origin}/?activity=${a.id}`}
-                  size={130}
-                  fgColor="#1a5c3a"
-                  bgColor="#ffffff"
-                />
+              <div className="text-xs text-gray-400 mb-3">
+                {a.date} · {a.venue}
               </div>
-              <div className="text-[10px] text-gray-400 mt-2">
+              <QrCode size={64} className="text-gray-300 mb-3" />
+              <div className="text-[10px] text-gray-400">
                 ACT-{String(a.id).padStart(4, '0')}
               </div>
-              <span className={`px-2 py-1 rounded-full text-[10px] font-medium mt-2 mb-3 ${PILL_STYLES[a.status] || 'bg-gray-100 text-gray-600'}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-[10px] font-medium mt-2 ${
+                  PILL_STYLES[a.status] || 'bg-gray-100 text-gray-600'
+                }`}
+              >
                 {a.status}
               </span>
-              <button
-                onClick={() => downloadQR(a.id, a.title)}
-                className="text-primary text-xs font-semibold hover:underline"
-              >
-                <Download size={14} className="inline mr-1" /> Download PNG
-              </button>
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      {selectedQrActivity && (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
+          <button
+            onClick={() => setSelectedQrActivityId(null)}
+            className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary"
+          >
+            <ArrowLeft size={18} /> Back to all activities
+          </button>
+
+          <div className="flex flex-col items-center text-center">
+            <div className="text-2xl font-bold text-gray-900">{selectedQrActivity.title}</div>
+            <div className="text-sm text-gray-400 mb-6">
+              {selectedQrActivity.date} · {selectedQrActivity.venue}
+            </div>
+
+            <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+              <QRCodeCanvas
+                id={`qr-canvas-${selectedQrActivity.id}`}
+                value={`${window.location.origin}/?activity=${selectedQrActivity.id}`}
+                size={320}
+                fgColor="#1a5c3a"
+                bgColor="#ffffff"
+              />
+            </div>
+
+            <div className="text-xs text-gray-400 mt-4">
+              ACT-{String(selectedQrActivity.id).padStart(4, '0')}
+            </div>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium mt-2 mb-6 ${
+                PILL_STYLES[selectedQrActivity.status] || 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {selectedQrActivity.status}
+            </span>
+
+            <button
+              onClick={() => downloadQR(selectedQrActivity.id, selectedQrActivity.title)}
+              className="text-primary text-sm font-semibold hover:underline"
+            >
+              <Download size={16} className="inline mr-1" /> Download PNG
+            </button>
+          </div>
         </div>
       )}
     </div>

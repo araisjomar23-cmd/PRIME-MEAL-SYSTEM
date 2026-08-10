@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { fetchBudgetOverview, saveBudgetEntry } from '../../features/budget/budgetService'
 import type { BudgetOverview } from '../../features/budget/budgetService'
-import { Wallet, Plus, Coins } from 'lucide-react'
+import { Wallet, Plus, Coins, ArrowLeft } from 'lucide-react'
 import { useToast } from '../../components/ToastProvider'
 import { SkeletonStatCard, SkeletonCard } from '../../components/Skeleton'
+import type { Activity } from '../../types/activity'
+import type { BudgetEntry } from '../../features/budget/budgetService'
 
 const EXPENSE_CATEGORIES = [
   'Food & Catering',
@@ -30,6 +32,7 @@ function pctColor(pct: number) {
 function AdminBudget() {
   const [data, setData] = useState<BudgetOverview | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
 
   useEffect(() => {
     load()
@@ -43,19 +46,23 @@ function AdminBudget() {
   }
 
   if (loading || !data) {
-  return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-2xl font-bold text-primary mb-6">Budget Monitor</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <SkeletonStatCard /><SkeletonStatCard /><SkeletonStatCard /><SkeletonStatCard />
+    return (
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl font-bold text-primary mb-6">Budget Monitor</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <SkeletonStatCard /><SkeletonStatCard /><SkeletonStatCard /><SkeletonStatCard />
+        </div>
+        <div className="space-y-6">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+        </div>
       </div>
-      <div className="space-y-6">
-        <SkeletonCard lines={4} />
-        <SkeletonCard lines={4} />
-      </div>
-    </div>
-  )
-}
+    )
+  }
+
+  const selectedActivity = selectedActivityId
+    ? data.activities.find((a) => a.id === selectedActivityId) || null
+    : null
 
   return (
     <div className="p-4 md:p-8">
@@ -70,14 +77,27 @@ function AdminBudget() {
 
       {data.activities.length === 0 ? (
         <div className="text-center text-gray-400 py-12">No activities with budget data yet.</div>
+      ) : selectedActivity ? (
+        <div>
+          <button
+            onClick={() => setSelectedActivityId(null)}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary mb-4"
+          >
+            <ArrowLeft size={16} /> Back to all activities
+          </button>
+          <ActivityBudgetDetail
+            activity={selectedActivity}
+            entries={data.entriesByActivity[selectedActivity.id] || []}
+            onSaved={load}
+          />
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.activities.map((a) => (
-            <ActivityBudgetCard
+            <ActivityBudgetSummaryCard
               key={a.id}
               activity={a}
-              entries={data.entriesByActivity[a.id] || []}
-              onSaved={load}
+              onClick={() => setSelectedActivityId(a.id)}
             />
           ))}
         </div>
@@ -97,13 +117,65 @@ function StatCard({ barColor, label, value, sub }: { barColor: string; label: st
   )
 }
 
-function ActivityBudgetCard({
+function ActivityBudgetSummaryCard({
+  activity: a,
+  onClick,
+}: {
+  activity: Activity
+  onClick: () => void
+}) {
+  const alloc = a.budgetAlloc
+  const spent = a.budgetSpent
+  const left = Math.max(0, alloc - spent)
+  const pct = alloc > 0 ? Math.min(100, Math.round((spent / alloc) * 100)) : 0
+
+  return (
+    <button
+      onClick={onClick}
+      className="panel p-4 text-left hover:shadow-md hover:border-primary/30 transition-all"
+    >
+      <div className="text-base font-bold text-gray-900 truncate">{a.title}</div>
+      <div className="text-xs text-gray-400 mb-3 truncate">{a.programName}</div>
+
+      {alloc === 0 ? (
+        <div className="text-sm text-gray-400">No budget allocated yet</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div>
+              <div className="text-[10px] uppercase text-gray-400 tracking-wide">Allocated</div>
+              <div className="text-sm font-bold text-primary">₱{alloc.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase text-gray-400 tracking-wide">Spent</div>
+              <div className="text-sm font-bold text-red-500">₱{spent.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase text-gray-400 tracking-wide">Remaining</div>
+              <div className="text-sm font-bold text-primary">₱{left.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Utilization</span>
+            <span className={pctColor(pct)}>{pct}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div className={`h-2 rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
+          </div>
+        </>
+      )}
+    </button>
+  )
+}
+
+function ActivityBudgetDetail({
   activity: a,
   entries,
   onSaved,
 }: {
-  activity: import('../../types/activity').Activity
-  entries: import('../../features/budget/budgetService').BudgetEntry[]
+  activity: Activity
+  entries: BudgetEntry[]
   onSaved: () => void
 }) {
   const { showToast } = useToast()
@@ -118,42 +190,42 @@ function ActivityBudgetCard({
   const left = Math.max(0, alloc - spent)
   const pct = alloc > 0 ? Math.min(100, Math.round((spent / alloc) * 100)) : 0
 
-async function handleAllocate() {
-  const amt = Number(allocInput)
-  if (!amt || amt <= 0) return showToast('Enter a valid amount.', 'error')
-  setSaving(true)
-  const result = await saveBudgetEntry(a.id, 'allocation', amt, 'Initial Budget', '')
-  setSaving(false)
-  if (result.ok) {
-    setAllocInput('')
-    showToast('Budget allocated.', 'success')
-    onSaved()
-  } else {
-    showToast('Failed: ' + result.error, 'error')
+  async function handleAllocate() {
+    const amt = Number(allocInput)
+    if (!amt || amt <= 0) return showToast('Enter a valid amount.', 'error')
+    setSaving(true)
+    const result = await saveBudgetEntry(a.id, 'allocation', amt, 'Initial Budget', '')
+    setSaving(false)
+    if (result.ok) {
+      setAllocInput('')
+      showToast('Budget allocated.', 'success')
+      onSaved()
+    } else {
+      showToast('Failed: ' + result.error, 'error')
+    }
   }
-}
 
-async function handleExpense() {
-  const amt = Number(amount)
-  if (!amt || amt <= 0) return showToast('Enter a valid amount.', 'error')
-  if (!category) return showToast('Select a category.', 'error')
-  setSaving(true)
-  const result = await saveBudgetEntry(a.id, 'expense', amt, category, description)
-  setSaving(false)
-  if (result.ok) {
-    setAmount('')
-    setCategory('')
-    setDescription('')
-    showToast('Expense recorded.', 'success')
-    onSaved()
-  } else {
-    showToast('Failed: ' + result.error, 'error')
+  async function handleExpense() {
+    const amt = Number(amount)
+    if (!amt || amt <= 0) return showToast('Enter a valid amount.', 'error')
+    if (!category) return showToast('Select a category.', 'error')
+    setSaving(true)
+    const result = await saveBudgetEntry(a.id, 'expense', amt, category, description)
+    setSaving(false)
+    if (result.ok) {
+      setAmount('')
+      setCategory('')
+      setDescription('')
+      showToast('Expense recorded.', 'success')
+      onSaved()
+    } else {
+      showToast('Failed: ' + result.error, 'error')
+    }
   }
-}
 
- if (alloc === 0) {
-  return (
-    <div className="panel p-4 md:p-5">
+  if (alloc === 0) {
+    return (
+      <div className="panel p-4 md:p-5">
         <div className="text-base font-bold text-gray-900">{a.title}</div>
         <div className="text-xs text-gray-400 mb-3">{a.programName}</div>
         <div className="text-sm text-gray-400 mb-3">No budget allocated yet</div>
@@ -166,7 +238,7 @@ async function handleExpense() {
             onChange={(e) => setAllocInput(e.target.value)}
             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
           />
-         <button
+          <button
             onClick={handleAllocate}
             disabled={saving}
             className="btn-primary inline-flex items-center justify-center gap-1.5 disabled:opacity-50">
@@ -178,7 +250,7 @@ async function handleExpense() {
   }
 
   return (
-  <div className="panel p-4 md:p-5">
+    <div className="panel p-4 md:p-5">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
         <div>
           <div className="text-base font-bold text-gray-900">{a.title}</div>
@@ -284,7 +356,7 @@ async function handleExpense() {
       </div>
 
       <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-       <div className="text-[11px] font-bold uppercase text-gray-400 tracking-wide mb-2 flex items-center gap-1.5">
+        <div className="text-[11px] font-bold uppercase text-gray-400 tracking-wide mb-2 flex items-center gap-1.5">
           <Coins size={12} /> Add Expense
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">

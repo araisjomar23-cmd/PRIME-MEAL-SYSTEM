@@ -17,14 +17,54 @@ import FacilitatorLayout from './components/FacilitatorLayout'
 import FacilitatorDashboard from './pages/facilitator/FacilitatorDashboard'
 import FacilitatorAttendance from './pages/facilitator/FacilitatorAttendance'
 import FacilitatorParticipants from './pages/facilitator/FacilitatorParticipants'
+import ParticipantSignup from './pages/user/ParticipantSignup'
+import ParticipantDashboard from './pages/user/ParticipantDashboard'
+import CompleteProfile from './pages/user/CompleteProfile'
+import MyActivities from './pages/user/MyActivities'
+import ParticipantProfile from './pages/user/ParticipantProfile'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<UserHome />} />
       <Route path="/activities/:id" element={<ActivityDetail />} />
+      <Route path="/signup" element={<ParticipantSignup />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/feedback" element={<SubmitEvaluation />} />
+
+      <Route
+        path="/participant/complete-profile"
+        element={
+          <ProtectedRoute>
+            <CompleteProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/participant"
+        element={
+          <ProtectedRoute allowedRoles={['participant']}>
+            <ParticipantDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/participant/my-activities"
+        element={
+          <ProtectedRoute allowedRoles={['participant']}>
+            <MyActivities />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/participant/profile"
+        element={
+          <ProtectedRoute allowedRoles={['participant']}>
+            <ParticipantProfile />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/admin"

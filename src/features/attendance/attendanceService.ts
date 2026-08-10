@@ -15,14 +15,9 @@ export async function loadTodayLog(): Promise<AttendanceLogRow[]> {
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
 
-  const { data, error } = await supabase
+  const { data: logs, error } = await supabase
     .from('attendance_log')
-    .select(`
-      id, checked_in_at, day_number, method, activity_id,
-      registrations ( ref_code, name, activity_id,
-        activities ( title )
-      )
-    `)
+    .select('id, checked_in_at, day_number, method, activity_id, registration_id')
     .gte('checked_in_at', todayStart.toISOString())
     .order('checked_in_at', { ascending: false })
 
@@ -31,14 +26,29 @@ export async function loadTodayLog(): Promise<AttendanceLogRow[]> {
     return []
   }
 
-  return (data || []).map((row: any) => ({
+  const regIds = [...new Set((logs || []).map((l: any) => l.registration_id))]
+  const activityIds = [...new Set((logs || []).map((l: any) => l.activity_id))]
+
+  const [{ data: regs }, { data: acts }] = await Promise.all([
+    regIds.length
+      ? supabase.from('registration_details').select('id, ref_code, name').in('id', regIds)
+      : Promise.resolve({ data: [] as any[] }),
+    activityIds.length
+      ? supabase.from('activities').select('id, title').in('id', activityIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ])
+
+  const regMap = Object.fromEntries((regs || []).map((r: any) => [r.id, r]))
+  const actMap = Object.fromEntries((acts || []).map((a: any) => [a.id, a.title]))
+
+  return (logs || []).map((row: any) => ({
     id: row.id,
     checkedInAt: row.checked_in_at,
     dayNumber: row.day_number,
     method: row.method,
-    name: row.registrations?.name || '—',
-    refCode: row.registrations?.ref_code || '—',
-    activityTitle: row.registrations?.activities?.title || '—',
+    name: regMap[row.registration_id]?.name || '—',
+    refCode: regMap[row.registration_id]?.ref_code || '—',
+    activityTitle: actMap[row.activity_id] || '—',
     activityId: row.activity_id,
   }))
 }
@@ -64,7 +74,7 @@ export async function markAttendance(
   }
 
   const { data: reg, error: regErr } = await supabase
-    .from('registrations')
+    .from('registration_details')
     .select('id, ref_code, name, activity_id, status')
     .eq('ref_code', refCode)
     .single()
@@ -114,10 +124,7 @@ export async function markAttendance(
   }
 
   if (reg.status === 'registered') {
-    await supabase
-      .from('registrations')
-      .update({ status: 'attended', attended_at: now })
-      .eq('id', reg.id)
+    await supabase.from('registrations').update({ status: 'attended', attended_at: now }).eq('id', reg.id)
   }
 
   return {

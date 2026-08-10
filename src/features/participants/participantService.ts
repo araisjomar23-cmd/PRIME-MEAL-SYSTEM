@@ -3,11 +3,11 @@ import type { Registration } from '../../types/registration'
 
 export async function fetchParticipants(): Promise<Registration[]> {
   const { data, error } = await supabase
-    .from('registrations')
+    .from('registration_details')
     .select(`
-      id, ref_code, pid, activity_id,
+      id, ref_code, activity_id,
       name, age, gender_identity, contact, barangay, organization,
-      status, registered_at, attended_at, notes,
+      status, registered_at, attended_at, notes, sectoral_group,
       activities (
         id, title, date_text, venue,
         programs ( name )
@@ -23,7 +23,6 @@ export async function fetchParticipants(): Promise<Registration[]> {
   return (data || []).map((r: any) => ({
     id: r.id,
     ref: r.ref_code || '',
-    pid: r.pid || '',
     registeredAt: r.registered_at,
     attendedAt: r.attended_at,
     notes: r.notes || '',
@@ -39,6 +38,7 @@ export async function fetchParticipants(): Promise<Registration[]> {
     activityDate: r.activities?.date_text ?? '—',
     activityVenue: r.activities?.venue ?? '—',
     program: r.activities?.programs?.name ?? '—',
+    sectoralGroup: r.sectoral_group || 'None',
   }))
 }
 
@@ -52,6 +52,5 @@ export async function updateStatusInDB(refCode: string, newStatus: string): Prom
     console.error('updateStatusInDB error:', error.message)
     return false
   }
-
   return true
 }

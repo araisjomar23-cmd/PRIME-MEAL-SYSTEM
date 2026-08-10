@@ -1,24 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Search, MapPin, Calendar, ArrowRight, Sparkles, Zap } from 'lucide-react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import {
+  Search, MapPin, Calendar, Sparkles, Zap, Clock,
+  UserPlus, ClipboardCheck, MessageCircle,
+  HeartPulse, GraduationCap, Briefcase, HandHeart, Shield,
+  Landmark, Vote, Leaf, Plane, Sprout,
+  Mail, Phone,
+} from 'lucide-react'
 import { fetchPublicActivities } from '../../features/public/publicActivityService'
 import type { PublicActivity } from '../../features/public/publicActivityService'
 import ActivityModal from '../../features/public/ActivityModal'
-import { Clock } from 'lucide-react'
 import { autoCloseExpiredActivities } from '../../features/activities/activityService'
 import { supabase } from '../../lib/supabase'
+import logo from '../../assets/CYDO LOGO.jpg'
 
 const PROGRAMS = [
-  'Health',
-  'Education',
-  'Economic Empowerment',
-  'Social Inclusion and Equity',
-  'Peace Building and Security',
-  'Governance',
-  'Active Citizenship',
-  'Environment',
-  'Global Mobility',
-  'Agriculture',
+  { name: 'Health', icon: HeartPulse },
+  { name: 'Education', icon: GraduationCap },
+  { name: 'Economic Empowerment', icon: Briefcase },
+  { name: 'Social Inclusion and Equity', icon: HandHeart },
+  { name: 'Peace Building and Security', icon: Shield },
+  { name: 'Governance', icon: Landmark },
+  { name: 'Active Citizenship', icon: Vote },
+  { name: 'Environment', icon: Leaf },
+  { name: 'Global Mobility', icon: Plane },
+  { name: 'Agriculture', icon: Sprout },
+]
+
+const PILLARS = [
+  { letter: 'M', word: 'Monitoring', desc: 'Tracking youth activities and participation as they happen.' },
+  { letter: 'E', word: 'Evaluation', desc: 'Measuring outcomes and impact against program goals.' },
+  { letter: 'A', word: 'Accountability', desc: 'Transparent reporting for CYDO, partners, and the community.' },
+  { letter: 'L', word: 'Learning', desc: 'Using feedback and data to continuously improve programs.' },
+]
+
+const STEPS = [
+  { icon: UserPlus, title: 'Create Your Account', desc: 'Sign up with your email and complete your youth profile.' },
+  { icon: Search, title: 'Browse Activities', desc: 'Explore programs and events happening across Panabo City.' },
+  { icon: ClipboardCheck, title: 'Register for a Slot', desc: 'Reserve your spot and get a reference code instantly.' },
+  { icon: MessageCircle, title: 'Attend & Give Feedback', desc: 'Join the activity, then help us improve with your evaluation.' },
 ]
 
 function fmtShort(n: number) {
@@ -26,6 +46,7 @@ function fmtShort(n: number) {
 }
 
 function UserHome() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [activities, setActivities] = useState<PublicActivity[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('activity'))
@@ -48,12 +69,12 @@ function UserHome() {
   }, [])
 
   async function load() {
-  setLoading(true)
-  await autoCloseExpiredActivities()
-  const data = await fetchPublicActivities()
-  setActivities(data)
-  setLoading(false)
-}
+    setLoading(true)
+    await autoCloseExpiredActivities()
+    const data = await fetchPublicActivities()
+    setActivities(data)
+    setLoading(false)
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -88,11 +109,27 @@ function UserHome() {
           }}
         />
 
-        <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-2">
-          <div className="inline-flex items-center gap-2 bg-accent/20 border border-accent/40 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-accent mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent eyebrow-dot" />
-            Live Activities Open Now
+        <div className="relative max-w-5xl mx-auto px-6 pt-6 flex items-center justify-between">
+          <div className="font-display text-lg font-extrabold tracking-tight">
+            CYDO <span className="text-accent">MEAL</span>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/admin/login')}
+              className="text-sm font-semibold text-white/80 hover:text-white transition-colors"
+            >
+              Log In
+            </button>
+            <button
+              onClick={() => navigate('/signup')}
+              className="text-sm font-semibold bg-accent text-primary-dark px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              Sign Up
+            </button>
+          </div>
+        </div>
+
+        <div className="relative max-w-5xl mx-auto px-6 pt-10 pb-2">
 
           <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight mb-3">
             CYDO <span className="text-accent">MEAL</span> System
@@ -142,7 +179,7 @@ function UserHome() {
             >
               <option value="" className="text-black">All Programs</option>
               {PROGRAMS.map((p) => (
-                <option key={p} value={p} className="text-black">{p}</option>
+                <option key={p.name} value={p.name} className="text-black">{p.name}</option>
               ))}
             </select>
           </div>
@@ -160,7 +197,7 @@ function UserHome() {
       </div>
 
       {/* Cards */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div id="activities-section" className="max-w-5xl mx-auto px-6 py-8">
         <p className="text-sm text-gray-500 mb-5">
           {loading ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? 'activity' : 'activities'} found`}
         </p>
@@ -250,6 +287,146 @@ function UserHome() {
           </div>
         )}
       </div>
+
+      {/* About / What is MEAL */}
+      <div className="max-w-5xl mx-auto px-6 py-14">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">What is MEAL?</div>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3">
+            Built by the City Youth Development Office of Panabo City
+          </h2>
+          <p className="text-gray-500 leading-relaxed">
+            The PRIME MEAL System helps CYDO plan, run, and improve youth development programs across
+            Panabo City — giving every young participant an easy way to discover activities, register,
+            and be heard.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {PILLARS.map((p) => (
+            <div key={p.letter} className="panel p-5 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary-light text-primary font-display font-extrabold text-lg flex items-center justify-center mx-auto mb-3">
+                {p.letter}
+              </div>
+              <div className="font-bold text-gray-900 text-sm mb-1">{p.word}</div>
+              <p className="text-xs text-gray-500 leading-relaxed">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div style={{ background: 'var(--color-primary-light)' }}>
+        <div className="max-w-5xl mx-auto px-6 py-14">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">How It Works</div>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-gray-900">
+              Four steps to get involved
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {STEPS.map((step, i) => {
+              const Icon = step.icon
+              return (
+                <div key={step.title} className="bg-white rounded-2xl border p-5 relative" style={{ borderColor: 'var(--color-border-warm)' }}>
+                  <div className="absolute -top-3 -left-3 w-7 h-7 rounded-full bg-accent text-white text-xs font-extrabold flex items-center justify-center shadow">
+                    {i + 1}
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-primary-light text-primary flex items-center justify-center mb-4">
+                    <Icon size={20} />
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-sm mb-1.5">{step.title}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">{step.desc}</p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Programs showcase */}
+      <div className="max-w-5xl mx-auto px-6 py-14">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-2">Our Programs</div>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-gray-900">
+            Ten focus areas for youth development
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {PROGRAMS.map((p) => {
+            const Icon = p.icon
+            return (
+              <button
+                key={p.name}
+                onClick={() => {
+                  setProgramFilter(p.name)
+                  document.getElementById('activities-section')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="panel p-4 text-center hover:-translate-y-1 transition-transform"
+              >
+                <div className="w-10 h-10 rounded-full bg-primary-light text-primary flex items-center justify-center mx-auto mb-2.5">
+                  <Icon size={18} />
+                </div>
+                <div className="text-xs font-semibold text-gray-700 leading-tight">{p.name}</div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="text-white mt-8" style={{ background: 'var(--color-primary-dark, #0f4429)' }}>
+        <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 sm:grid-cols-3 gap-10">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-white/95 flex items-center justify-center p-1.5 shrink-0">
+                <img src={logo} alt="CYDO Logo" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="font-display font-extrabold text-sm">CYDO MEAL System</div>
+                <div className="text-white/50 text-[11px]">Panabo City Government</div>
+              </div>
+            </div>
+            <p className="text-white/60 text-xs leading-relaxed">
+              Monitoring, Evaluation, Accountability, and Learning for youth development programs
+              across Panabo City.
+            </p>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wide text-white/40 mb-3">Quick Links</div>
+            <div className="flex flex-col gap-2 text-sm">
+              <button onClick={() => document.getElementById('activities-section')?.scrollIntoView({ behavior: 'smooth' })} className="text-white/70 hover:text-white text-left">
+                Browse Activities
+              </button>
+              <button onClick={() => navigate('/signup')} className="text-white/70 hover:text-white text-left">
+                Create an Account
+              </button>
+              <button onClick={() => navigate('/admin/login')} className="text-white/70 hover:text-white text-left">
+                Log In
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wide text-white/40 mb-3">Contact CYDO</div>
+            <div className="flex flex-col gap-2 text-sm text-white/70">
+              <span className="inline-flex items-center gap-2"><MapPin size={14} className="text-white/40" /> Panabo City, Davao del Norte</span>
+              <span className="inline-flex items-center gap-2"><Phone size={14} className="text-white/40" /> (084) 000-0000</span>
+              <span className="inline-flex items-center gap-2"><Mail size={14} className="text-white/40" /> cydo@panabocity.gov.ph</span>
+              <span className="inline-flex items-center gap-2"><span className="text-white/40 font-bold">f</span>facebook.com/CYDOPanabo</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10">
+          <div className="max-w-5xl mx-auto px-6 py-4 text-center text-xs text-white/40">
+            © {new Date().getFullYear()} PRIME: MEAL System — City Youth Development Office, Panabo City. All rights reserved.
+          </div>
+        </div>
+      </footer>
 
       {selectedId && (
         <ActivityModal

@@ -40,7 +40,6 @@ function ParticipantModal({ participant: p, onClose, onStatusChange }: Props) {
     ['Contact', p.contact],
     ['Organization', p.org || '—'],
     ['Reference Code', p.ref || '—'],
-    ['Participant ID', p.pid || '—'],
     ['Registered At', fmt(p.registeredAt)],
     ['Attended At', fmt(p.attendedAt)],
     ['Program', p.program],

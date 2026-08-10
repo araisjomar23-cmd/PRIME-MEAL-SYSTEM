@@ -25,7 +25,9 @@ function formatDateRange(startDate?: string, endDate?: string): string {
   if (!startDate) return '—'
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-  return startDate === endDate ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`
+  return startDate === endDate
+  ? fmt(startDate)
+  : `${fmt(startDate)} – ${fmt(endDate ?? startDate)}`
 }
 
 function formatTimeRange(startTime?: string, endTime?: string): string {

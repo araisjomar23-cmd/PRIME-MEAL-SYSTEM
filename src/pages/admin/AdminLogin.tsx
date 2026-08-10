@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { loginAdmin, getAdminRole } from '../../features/auth/authService'
 import { Mail, Lock, Eye, EyeOff, CalendarCheck2, Users, Wallet, Check } from 'lucide-react'
 import logo from '../../assets/CYDO LOGO.jpg'
+import { supabase } from '../../lib/supabase'
+import { usePageTitle } from '../../hooks/usePageTitle'
 
 const FEATURES = [
-  { icon: CalendarCheck2, label: 'Manage Activities & Events' },
-  { icon: Users, label: 'Track Participants' },
-  { icon: Wallet, label: 'Budget & Reports' },
+  { icon: CalendarCheck2, label: 'Discover Youth Programs' },
+  { icon: Users, label: 'Stay Connected to Your Community' },
+  { icon: Wallet, label: 'Transparent Program Reporting' },
 ]
 
 function AdminLogin() {
+  usePageTitle('Login')
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -45,17 +48,35 @@ function AdminLogin() {
     }
 
     const role = await getAdminRole(userId)
-    setLoading(false)
 
-    if (!role) {
-      setError('Account not authorized. Contact your administrator.')
+    if (role === 'superadmin') {
+      setLoading(false)
+      navigate('/admin')
       return
     }
 
     if (role === 'facilitator') {
+      setLoading(false)
       navigate('/admin/facilitator-portal')
+      return
+    }
+
+    // Check if the user already has a participant profile.
+    const { data: participant } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('user_uuid', userId)
+      .maybeSingle()
+
+    const pendingRedirect = sessionStorage.getItem('postLoginRedirect')
+    sessionStorage.removeItem('postLoginRedirect')
+
+    setLoading(false)
+
+    if (participant) {
+      navigate(pendingRedirect || '/participant')
     } else {
-      navigate('/admin')
+      navigate('/participant/complete-profile')
     }
   }
 
@@ -85,11 +106,13 @@ function AdminLogin() {
 
           <div className="relative z-10 flex flex-col items-center">
             <div className="w-24 h-24 rounded-2xl bg-white/95 shadow-lg flex items-center justify-center mb-6 p-3">
-              <img src={logo} alt="CYDO LOGO.jpg" className="w-full h-full object-contain" />
+              <img src={logo} alt="CYDO logo" className="w-full h-full object-contain" />
             </div>
 
-            <h2 className="text-2xl font-extrabold text-white mb-1">MEAL System</h2>
-            <p className="text-sm font-medium tracking-wide uppercase text-accent mb-8">Admin Portal</p>
+            <h2 className="text-2xl font-extrabold text-white mb-1">CYDO PRIME</h2>
+            <p className="text-sm font-medium tracking-wide uppercase text-accent mb-8">
+              MEAL System Portal
+            </p>
 
             <div className="space-y-3 text-left">
               {FEATURES.map(({ icon: Icon, label }) => (
@@ -104,13 +127,17 @@ function AdminLogin() {
                 </div>
               ))}
             </div>
+
+            <p className="text-xs text-white/50 mt-8 leading-relaxed">
+              City Youth Development Office · Panabo City Government
+            </p>
           </div>
         </div>
 
         {/* Right form panel */}
         <div className="flex flex-col justify-center px-8 py-10 sm:px-12">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-1">Welcome Back</h1>
-          <p className="text-sm text-gray-500 mb-8">Sign in to your admin account</p>
+          <p className="text-sm text-gray-500 mb-8">Sign in to your account</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -189,8 +216,15 @@ function AdminLogin() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-8 pt-6 border-t border-gray-100">
-            © {new Date().getFullYear()} PRIME: MEAL System. All rights reserved.
+          <p className="text-center text-sm text-gray-500 mt-6">
+            New youth participant?{' '}
+            <Link to="/signup" className="text-primary font-semibold hover:underline">
+              Create an account
+            </Link>
+          </p>
+
+          <p className="text-center text-xs text-gray-400 mt-6 pt-6 border-t border-gray-100">
+            © {new Date().getFullYear()} CYDO PRIME MEAL System. All rights reserved.
           </p>
         </div>
       </div>

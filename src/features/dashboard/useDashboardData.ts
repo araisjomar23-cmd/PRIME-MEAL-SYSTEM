@@ -1,9 +1,34 @@
 import { useEffect, useState } from 'react'
 import { fetchActivities } from '../activities/activityService'
 import { fetchParticipants } from '../participants/participantService'
+import { fetchEvaluations, type EvaluationStats, type EvaluationRow } from '../evaluations/evaluationService'
 import { supabase } from '../../lib/supabase'
 import type { Activity } from '../../types/activity'
 import type { Registration } from '../../types/registration'
+
+export interface StatusSlice {
+  status: string
+  label: string
+  value: number
+}
+
+export interface ActivityRegistrationDatum {
+  name: string
+  registrations: number
+  slots: number
+}
+
+export interface BudgetDatum {
+  name: string
+  allocated: number
+  spent: number
+}
+
+export interface AttendanceTrendDatum {
+  date: string
+  registrations: number
+  attendance: number
+}
 
 export interface DashboardData {
   totalReg: number
@@ -18,6 +43,55 @@ export interface DashboardData {
   thisWeek: number
   liveCount: Record<string, number>
   all: Registration[]
+  statusBreakdown: StatusSlice[]
+  activityRegistrations: ActivityRegistrationDatum[]
+  budgetOverview: BudgetDatum[]
+  attendanceTrend: AttendanceTrendDatum[]
+  evaluationStats: EvaluationStats
+  recentEvaluations: EvaluationRow[]
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  attended: 'Attended',
+  completed: 'Completed',
+  registered: 'Registered',
+  pending: 'Pending',
+  cancelled: 'Cancelled',
+  inactive: 'Inactive',
+}
+
+function labelForStatus(status: string): string {
+  return STATUS_LABELS[status] ?? status.charAt(0).toUpperCase() + status.slice(1)
+}
+
+const TREND_DAYS = 14
+
+function buildAttendanceTrend(all: Registration[]): AttendanceTrendDatum[] {
+  const days: AttendanceTrendDatum[] = []
+  const today = new Date()
+
+  for (let i = TREND_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    days.push({ date: d.toISOString().slice(0, 10), registrations: 0, attendance: 0 })
+  }
+
+  const dayIndex = new Map(days.map((d, idx) => [d.date, idx]))
+
+  all.forEach((r) => {
+    const regDate = r.registeredAt?.slice(0, 10)
+    if (regDate && dayIndex.has(regDate)) {
+      days[dayIndex.get(regDate)!].registrations += 1
+    }
+    if (r.attendedAt) {
+      const attDate = r.attendedAt.slice(0, 10)
+      if (dayIndex.has(attDate)) {
+        days[dayIndex.get(attDate)!].attendance += 1
+      }
+    }
+  })
+
+  return days
 }
 
 export function useDashboardData() {
@@ -29,7 +103,11 @@ export function useDashboardData() {
     setLoading(true)
     setError(null)
     try {
-      const [acts, all] = await Promise.all([fetchActivities(), fetchParticipants()])
+      const [acts, all, evalResult] = await Promise.all([
+        fetchActivities(),
+        fetchParticipants(),
+        fetchEvaluations(),
+      ])
 
       const totalReg = all.length
       const totalAtt = all.filter((p) => p.status === 'attended' || p.status === 'completed').length
@@ -49,6 +127,39 @@ export function useDashboardData() {
         }
       })
 
+      // Pie chart: breakdown of attendees by sectoral group
+      const sectoralCounts: Record<string, number> = {}
+      all
+        .filter((p) => p.status === 'attended' || p.status === 'completed')
+        .forEach((r) => {
+          const key = r.sectoralGroup || 'None'
+          sectoralCounts[key] = (sectoralCounts[key] || 0) + 1
+        })
+      const statusBreakdown: StatusSlice[] = Object.entries(sectoralCounts)
+        .map(([status, value]) => ({ status, label: status, value }))
+        .sort((a, b) => b.value - a.value)
+
+      const activityRegistrations: ActivityRegistrationDatum[] = acts
+        .map((a) => ({
+          name: a.title,
+          registrations: liveCount[a.id] || 0,
+          slots: a.slots,
+        }))
+        .sort((a, b) => b.registrations - a.registrations)
+        .slice(0, 8)
+
+      const budgetOverview: BudgetDatum[] = acts
+        .filter((a) => a.budgetAlloc > 0)
+        .map((a) => ({
+          name: a.title,
+          allocated: a.budgetAlloc,
+          spent: a.budgetSpent,
+        }))
+        .sort((a, b) => b.allocated - a.allocated)
+        .slice(0, 8)
+
+      const attendanceTrend = buildAttendanceTrend(all)
+
       setData({
         totalReg,
         totalAtt,
@@ -62,6 +173,12 @@ export function useDashboardData() {
         thisWeek,
         liveCount,
         all,
+        statusBreakdown,
+        activityRegistrations,
+        budgetOverview,
+        attendanceTrend,
+        evaluationStats: evalResult.stats,
+        recentEvaluations: evalResult.rows.slice(0, 5),
       })
     } catch (err) {
       console.error('Dashboard load error:', err)
@@ -78,6 +195,7 @@ export function useDashboardData() {
       .channel(`dashboard-live-updates-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => refresh())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, () => refresh())
       .subscribe()
 
     return () => {

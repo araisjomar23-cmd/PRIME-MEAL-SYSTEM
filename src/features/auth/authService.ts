@@ -18,8 +18,12 @@ export async function getAdminRole(userId: string): Promise<string | null> {
     .from('admin_users')
     .select('role')
     .eq('user_uuid', userId)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
-  return data.role
+  if (error) {
+    console.error(error)
+    return null
+  }
+
+  return data?.role ?? null
 }
