@@ -413,10 +413,29 @@ function UserHome() {
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-white/40 mb-3">Contact CYDO</div>
             <div className="flex flex-col gap-2 text-sm text-white/70">
-              <span className="inline-flex items-center gap-2"><MapPin size={14} className="text-white/40" /> Panabo City, Davao del Norte</span>
+              <a
+                href="https://maps.app.goo.gl/6ue339w8yAk7AVLe8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 hover:text-white transition-colors"
+              >
+              <MapPin size={14} className="text-white/40"/>
+              <span>Barangay JP Laurel, Panabo City, Davao del Norte</span>
+              </a>
+
               <span className="inline-flex items-center gap-2"><Phone size={14} className="text-white/40" /> (084) 000-0000</span>
               <span className="inline-flex items-center gap-2"><Mail size={14} className="text-white/40" /> cydo@panabocity.gov.ph</span>
-              <span className="inline-flex items-center gap-2"><span className="text-white/40 font-bold">f</span>facebook.com/CYDOPanabo</span>
+
+              <a 
+               href="https://www.facebook.com/profile.php?id=100090102912449"
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center gap-2 hover:text-white transition-colors"
+               >
+              <span className="text-white/40 font-bold">f</span>
+              <span>Panabo City Youth Development Office</span>
+              </a>
+
             </div>
           </div>
         </div>

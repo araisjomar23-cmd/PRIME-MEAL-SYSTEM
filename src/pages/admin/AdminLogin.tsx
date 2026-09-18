@@ -129,7 +129,7 @@ function AdminLogin() {
             </div>
 
             <p className="text-xs text-white/50 mt-8 leading-relaxed">
-              City Youth Development Office · Panabo City Government
+              City Youth Development Office · Panabo City
             </p>
           </div>
         </div>
