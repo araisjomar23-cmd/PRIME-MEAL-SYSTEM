@@ -4,8 +4,11 @@ export async function loginAdmin(email: string, password: string) {
   return await supabase.auth.signInWithPassword({ email, password })
 }
 
+// FIX: Explicitly remove the tracking flag when logging out
 export async function logoutAdmin() {
-  return await supabase.auth.signOut()
+  const result = await supabase.auth.signOut()
+  localStorage.removeItem('cydo-remember-me') 
+  return result
 }
 
 export async function getCurrentSession() {

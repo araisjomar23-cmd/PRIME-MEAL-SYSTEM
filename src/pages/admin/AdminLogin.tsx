@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { loginAdmin, getAdminRole } from '../../features/auth/authService'
 import { Mail, Lock, Eye, EyeOff, CalendarCheck2, Users, Wallet, Check } from 'lucide-react'
 import logo from '../../assets/CYDO LOGO.jpg'
-import { supabase } from '../../lib/supabase'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import { supabase } from '../../lib/supabase' // Removed persistRememberMe import
+import { useAuth } from '../../features/auth/AuthContext'
 
 const FEATURES = [
   { icon: CalendarCheck2, label: 'Discover Youth Programs' },
@@ -15,12 +16,34 @@ const FEATURES = [
 function AdminLogin() {
   usePageTitle('Login')
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const { loading: authLoading, role } = useAuth()
+  
+  // FIX 1: Read the remembered email on initial component load
+  const [email, setEmail] = useState(() => {
+    return localStorage.getItem('cydo_remembered_email') || ''
+  })
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  
+  // FIX 2: Default state true if an email was already remembered
+  const [rememberMe, setRememberMe] = useState(() => {
+    return !!localStorage.getItem('cydo_remembered_email')
+  })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (authLoading) return
+    if (role === 'superadmin') {
+      navigate('/admin', { replace: true })
+    } else if (role === 'facilitator') {
+      navigate('/admin/facilitator-portal', { replace: true })
+    } else if (role === 'participant') {
+      const pendingRedirect = sessionStorage.getItem('postLoginRedirect')
+      sessionStorage.removeItem('postLoginRedirect')
+      navigate(pendingRedirect || '/participant', { replace: true })
+    }
+  }, [authLoading, role, navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,6 +55,8 @@ function AdminLogin() {
     }
 
     setLoading(true)
+
+    // FIX 3: Safe execution block for authentication
     const { data, error: loginError } = await loginAdmin(email.trim(), password)
 
     if (loginError) {
@@ -45,6 +70,14 @@ function AdminLogin() {
       setLoading(false)
       setError('Could not identify user. Please try again.')
       return
+    }
+
+    // FIX 4: Only alter persistence storage *after* successful authentication
+    if (rememberMe) {
+      localStorage.setItem('cydo_remembered_email', email.trim())
+    } else {
+      localStorage.removeItem('cydo_remembered_email')
+      // If remember me is false, set Supabase session persistence to 'session' if configured in your client
     }
 
     const role = await getAdminRole(userId)
@@ -61,7 +94,6 @@ function AdminLogin() {
       return
     }
 
-    // Check if the user already has a participant profile.
     const { data: participant } = await supabase
       .from('participants')
       .select('id')
@@ -186,9 +218,10 @@ function AdminLogin() {
               <label className="inline-flex items-center gap-2 text-gray-600 cursor-pointer select-none">
                 <input
                   type="checkbox"
+                  id="rememberMe"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/30"
+                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                 />
                 Remember me
               </label>
