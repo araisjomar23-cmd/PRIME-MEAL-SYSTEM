@@ -16,7 +16,7 @@ export async function fetchActivityById(id: string): Promise<PublicActivity | nu
     .from('activities')
     .select(`
       id, program_id, title, color_bg, tags,
-      status, slots, start_date, end_date, venue,
+      status, slots, taken, start_date, end_date, venue,
       preview_desc, full_desc, outcomes, schedule, bring, note,
       programs ( id, name )
     `)
@@ -24,12 +24,6 @@ export async function fetchActivityById(id: string): Promise<PublicActivity | nu
     .single()
 
   if (error || !data) return null
-
-  const { data: regRows } = await supabase
-    .from('registrations')
-    .select('id')
-    .eq('activity_id', id)
-    .neq('status', 'inactive')
 
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -43,7 +37,7 @@ export async function fetchActivityById(id: string): Promise<PublicActivity | nu
     tags: data.tags || [],
     status: data.status || 'open',
     slots: data.slots || 0,
-    taken: regRows?.length || 0,
+    taken: data.taken || 0,
     venue: data.venue || '—',
     date:
       data.start_date === data.end_date
@@ -74,57 +68,20 @@ export async function registerParticipant(activityId: string): Promise<RegisterR
     return { ok: false, error: 'Please login first.' }
   }
 
-  const { data: participant, error: participantError } = await supabase
-    .from('participants')
-    .select('id')
-    .eq('user_uuid', user.id)
-    .single()
-
-  if (participantError || !participant) {
-    return { ok: false, error: 'Please complete your profile before registering.' }
-  }
-
-  const { data: existing } = await supabase
-    .from('registrations')
-    .select('id')
-    .eq('participant_id', participant.id)
-    .eq('activity_id', activityId)
-    .maybeSingle()
-
-  if (existing) {
-    return { ok: false, error: 'You are already registered for this activity.' }
-  }
-
-  const { data: liveRegs } = await supabase
-    .from('registrations')
-    .select('id')
-    .eq('activity_id', activityId)
-    .neq('status', 'inactive')
-
-  const { data: activityRow } = await supabase
-    .from('activities')
-    .select('slots')
-    .eq('id', activityId)
-    .single()
-
-  const openSlots = Math.max(0, (activityRow?.slots || 0) - (liveRegs?.length || 0))
-  if (openSlots <= 0) {
-    return { ok: false, error: 'This activity is full. No slots remaining.' }
-  }
-
-  const refCode = generateCode('CY-')
-
-  const { error } = await supabase.from('registrations').insert({
-    participant_id: participant.id,
-    activity_id: activityId,
-    ref_code: refCode,
-    status: 'registered',
-    registered_at: new Date().toISOString(),
+  // Single atomic call — no separate check/count/insert steps.
+  // The lock inside the RPC handles the race, not the JS layer.
+  const { data, error } = await supabase.rpc('register_participant', {
+    p_activity_id: activityId,
   })
 
   if (error) {
     return { ok: false, error: error.message }
   }
 
-  return { ok: true, refCode }
+  const result = data?.[0]
+  if (!result?.success) {
+    return { ok: false, error: result?.message || 'Registration failed.' }
+  }
+
+  return { ok: true, refCode: result.ref_code }
 }

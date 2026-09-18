@@ -61,6 +61,7 @@ function ActivityModal({ activityId, onClose }: Props) {
   }
 
   const open = activity ? Math.max(0, activity.slots - activity.taken) : 0
+  const soldOut = activity? open <= 0 || activity.status === 'full' || activity.status === 'closed': true
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -125,10 +126,16 @@ function ActivityModal({ activityId, onClose }: Props) {
 
               <button
                 onClick={handleRegister}
-                disabled={open <= 0 || submitting}
+                disabled={soldOut || submitting}
                 className="w-full btn-primary py-2.5 disabled:opacity-40"
               >
-                {open <= 0 ? 'Activity Full' : submitting ? 'Registering…' : 'Register Now'}
+                {activity.status === 'closed'
+                  ? 'Registration Closed'
+                  : soldOut
+                  ? 'Activity Full'
+                  : submitting
+                  ? 'Registering…'
+                  : 'Register Now'}
               </button>
             </div>
           </>

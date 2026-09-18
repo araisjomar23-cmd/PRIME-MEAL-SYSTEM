@@ -116,6 +116,7 @@ function ActivityDetail() {
   }
 
   const open = Math.max(0, activity.slots - activity.taken)
+  const soldOut = open <= 0 || activity.status === 'full' || activity.status === 'closed'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -149,12 +150,19 @@ function ActivityDetail() {
             </div>
 
             {error && <p className="text-sm text-red-500 mb-4">⚠️ {error}</p>}
-
+            
             <button
               onClick={handleRegister}
-              disabled={open <= 0 || submitting}
-              className="w-full btn-primary py-2.5 disabled:opacity-40">
-              {open <= 0 ? 'Activity Full' : submitting ? 'Registering…' : 'Register Now'}
+              disabled={soldOut || submitting}
+              className="w-full btn-primary py-2.5 disabled:opacity-40"
+              >
+              {activity.status === 'closed'
+                ? 'Registration Closed'
+                : soldOut
+                ? 'Activity Full'
+                : submitting
+                ? 'Registering…'
+                : 'Register Now'}
             </button>
           </div>
         </div>
