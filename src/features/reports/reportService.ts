@@ -37,7 +37,7 @@ export interface ReportData {
     avgRating: string
     recommendPct: string
   }[]
-  recommendations: string[]
+  insights: string[]
 }
 
 export async function generateReport(dateFrom: string, dateTo: string): Promise<ReportData> {
@@ -158,41 +158,41 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
       ? `A total of ${evals.length} evaluation${evals.length === 1 ? '' : 's'} were collected across ${evalRows.length} activit${evalRows.length === 1 ? 'y' : 'ies'}, with an overall average satisfaction rating of ${avgSatisfaction} out of 5.`
       : 'No evaluation responses were collected during this period.'
 
-  const recommendations: string[] = []
+  const insights: string[] = []
   const attendanceRate = totalRegistered > 0 ? (totalAttended / totalRegistered) * 100 : 0
 
   if (attendanceRate < 60 && totalRegistered > 0) {
-    recommendations.push(
+    insights.push(
       `Attendance rate for this period is ${attendanceRate.toFixed(0)}%, below the 60% benchmark. Consider reviewing reminder/follow-up processes for registered participants.`
     )
   } else if (totalRegistered > 0) {
-    recommendations.push(
+    insights.push(
       `Attendance rate for this period is ${attendanceRate.toFixed(0)}%, meeting expected benchmarks. Continue current outreach practices.`
     )
   }
 
   const lowFillActivities = activityRows.filter((a) => a.slots > 0 && a.registered / a.slots < 0.5)
   if (lowFillActivities.length > 0) {
-    recommendations.push(
+    insights.push(
       `${lowFillActivities.length} activit${lowFillActivities.length === 1 ? 'y has' : 'ies have'} less than 50% slot fill rate. Consider additional promotion for: ${lowFillActivities.map((a) => a.title).join(', ')}.`
     )
   }
 
   const overBudget = budgetRows.filter((b) => b.utilPct >= 90)
   if (overBudget.length > 0) {
-    recommendations.push(
+    insights.push(
       `${overBudget.length} activit${overBudget.length === 1 ? 'y is' : 'ies are'} at or above 90% budget utilization: ${overBudget.map((b) => b.title).join(', ')}. Monitor remaining expenses closely.`
     )
   }
 
   if (evals && evals.length > 0 && Number(avgSatisfaction) < 3.5) {
-    recommendations.push(
+    insights.push(
       `Average satisfaction rating (${avgSatisfaction}/5) is below the 3.5 benchmark. Review evaluation feedback for common concerns.`
     )
   }
 
-  if (recommendations.length === 0) {
-    recommendations.push('No significant issues detected for this reporting period based on available data.')
+  if (insights.length === 0) {
+    insights.push('No significant issues detected for this reporting period based on available data.')
   }
 
   return {
@@ -212,6 +212,6 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
     budgetRows,
     evalSummary,
     evalRows,
-    recommendations,
+    insights,
   }
 }

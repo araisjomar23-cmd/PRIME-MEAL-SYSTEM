@@ -38,7 +38,7 @@ function AdminReports() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-6 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Reports & Decision Support</h1>
+          <h1 className="text-2xl font-bold text-primary">Reports & Insights</h1>
           <p className="text-sm text-gray-500">Auto-compiled monitoring reports and data-driven insights</p>
         </div>
         {report && (
@@ -207,10 +207,10 @@ function AdminReports() {
             </tbody>
           </table>
 
-          <SectionTitle>VI. Recommendations</SectionTitle>
+          <SectionTitle>VI. Key Insights</SectionTitle>
           <ul className="text-xs text-gray-600 mb-6 space-y-2 leading-relaxed list-disc list-inside">
-            {report.recommendations.map((r, i) => (
-              <li key={i}>{r}</li>
+            {report.insights.map((insight, i) => (
+            <li key={i}>{insight}</li>
             ))}
           </ul>
 

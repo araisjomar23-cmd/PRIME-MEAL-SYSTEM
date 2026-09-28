@@ -432,7 +432,7 @@ function UserHome() {
                rel="noopener noreferrer"
                className="inline-flex items-center gap-2 hover:text-white transition-colors"
                >
-              <span className="text-white/40 font-bold">f</span>
+              <span className="text-white/70 font-bold">f</span>
               <span>Panabo City Youth Development Office</span>
               </a>
 

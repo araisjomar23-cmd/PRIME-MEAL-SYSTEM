@@ -1,22 +1,31 @@
+// src/services/RegistrationService.ts
 import { supabase } from '../../lib/supabase'
 import type { PublicActivity } from './publicActivityService'
 
-function generateCode(prefix: string): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = prefix
-  for (let i = 0; i < 8; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)]
-    if (i === 3) code += '-'
+/**
+ * Formats database 24h string values (e.g. "13:00:00") into a clean 12h AM/PM layout
+ */
+function formatTimeRange(startTime?: string, endTime?: string): string {
+  if (!startTime) return '—'
+  const fmt = (t: string) => {
+    const [h, m] = t.split(':').map(Number)
+    const period = h >= 12 ? 'PM' : 'AM'
+    const h12 = h % 12 === 0 ? 12 : h % 12
+    return `${h12}:${String(m).padStart(2, '0')} ${period}`
   }
-  return code
+  return endTime ? `${fmt(startTime)} – ${fmt(endTime)}` : fmt(startTime)
 }
 
-export async function fetchActivityById(id: string): Promise<PublicActivity | null> {
+/**
+ * Fetches a single activity detail object block by its numeric ID
+ */
+// FIX 1: Changed parameter type from 'string' to 'number' to match database 'integer'
+export async function fetchActivityById(id: number): Promise<PublicActivity | null> {
   const { data, error } = await supabase
     .from('activities')
     .select(`
       id, program_id, title, color_bg, tags,
-      status, slots, taken, start_date, end_date, venue,
+      status, slots, taken, start_date, end_date, start_time, end_time, venue,
       preview_desc, full_desc, outcomes, schedule, bring, note,
       programs ( id, name )
     `)
@@ -29,7 +38,7 @@ export async function fetchActivityById(id: string): Promise<PublicActivity | nu
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return {
-    id: data.id,
+    id: String(data.id), // Kept as string to satisfy the PublicActivity interface type boundary
     programId: data.program_id,
     programName: (data as any).programs?.name || '—',
     title: data.title || '',
@@ -43,7 +52,8 @@ export async function fetchActivityById(id: string): Promise<PublicActivity | nu
       data.start_date === data.end_date
         ? fmt(data.start_date)
         : `${fmt(data.start_date)} – ${fmt(data.end_date)}`,
-    time: '',
+    // FIX 2: Fixed the empty time bug using the local helper function
+    time: formatTimeRange(data.start_time, data.end_time),
     previewDesc: data.preview_desc || '',
     fullDesc: data.full_desc || '',
     outcomes: data.outcomes || [],
@@ -59,7 +69,11 @@ export interface RegisterResult {
   refCode?: string
 }
 
-export async function registerParticipant(activityId: string): Promise<RegisterResult> {
+/**
+ * Registers a logged-in user to a specific activity via an atomic backend RPC.
+ */
+// FIX 3: Changed parameter type from 'string' to 'number' to match database 'integer'
+export async function registerParticipant(activityId: number): Promise<RegisterResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -68,16 +82,16 @@ export async function registerParticipant(activityId: string): Promise<RegisterR
     return { ok: false, error: 'Please login first.' }
   }
 
-  // Single atomic call — no separate check/count/insert steps.
-  // The lock inside the RPC handles the race, not the JS layer.
+  // Single atomic call — the lock inside the RPC handles the race.
   const { data, error } = await supabase.rpc('register_participant', {
-    p_activity_id: activityId,
+    p_activity_id: activityId, // Supabase maps the number variable cleanly to the integer input parameter
   })
 
   if (error) {
     return { ok: false, error: error.message }
   }
 
+  // Unpack array structure safely
   const result = data?.[0]
   if (!result?.success) {
     return { ok: false, error: result?.message || 'Registration failed.' }

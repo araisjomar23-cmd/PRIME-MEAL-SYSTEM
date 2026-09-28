@@ -5,8 +5,7 @@ import { loadTodayLog, markAttendance } from '../../features/attendance/attendan
 import type { Activity } from '../../types/activity'
 import type { AttendanceLogRow } from '../../features/attendance/attendanceService'
 import type { MarkAttendanceResult } from '../../features/attendance/attendanceService'
-import { ClipboardList, Download, ArrowLeft } from 'lucide-react'
-import { QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { ClipboardList, Download, ArrowLeft,QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { SkeletonCard } from '../../components/Skeleton'
 import { supabase } from '../../lib/supabase'
 
@@ -56,15 +55,13 @@ function AdminAttendance() {
   }
 
   async function handleMark() {
-    if (checking) return
-    setChecking(true)
-    const result = await markAttendance(selectedActivity, refInput, dayNumber)
-    setScanResult(result)
-    setChecking(false)
-    if (result.status === 'success') {
-      setRefInput('')
-      const logData = await loadTodayLog()
-      setLog(logData)
+     if (checking || !selectedActivity || !refInput.trim()) return // Blocks empty clicks
+      setChecking(true)
+      const result = await markAttendance(selectedActivity, refInput, dayNumber)
+      setScanResult(result)
+      setChecking(false)
+      if (result.status === 'success') {
+        setRefInput('')
     }
   }
 
@@ -153,9 +150,9 @@ function AdminAttendance() {
 
             <button
               onClick={handleMark}
-              disabled={checking}
-              className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-base disabled:opacity-50">
-
+              disabled={checking || !selectedActivity || !refInput.trim()} // Fixed here
+              className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-base disabled:opacity-50"
+            >
               <CheckCircle2 size={18} />
               {checking ? 'Checking…' : 'Mark Attendance'}
             </button>
@@ -277,7 +274,7 @@ function AdminAttendance() {
 
             <div className="p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
               <QRCodeCanvas
-                id={`qr-canvas-${selectedQrActivity.id}`}
+                id={`visible-qr-canvas-${selectedQrActivity.id}`}
                 value={`${window.location.origin}/?activity=${selectedQrActivity.id}`}
                 size={320}
                 fgColor="#1a5c3a"
@@ -305,6 +302,18 @@ function AdminAttendance() {
           </div>
         </div>
       )}
+
+      <div className="hidden" aria-hidden="true">
+  {scannableActivities.map((a) => (
+    <QRCodeCanvas
+      key={a.id}
+      id={`qr-canvas-${a.id}`}
+      value={`${window.location.origin}/?activity=${a.id}`}
+      size={256}
+    />
+      ))}
+    </div>
+
     </div>
   )
 }
