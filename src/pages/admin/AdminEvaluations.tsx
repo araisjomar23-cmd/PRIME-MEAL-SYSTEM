@@ -6,6 +6,7 @@ import { Star } from 'lucide-react'
 import { EmptyState } from '../../components/EmptyState'
 import { MessageSquareText } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatAuditTimestamp } from '../../utils/audit'
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -98,12 +99,8 @@ function AdminEvaluations() {
                     <span className="inline-flex items-center gap-1"><ThumbsDown size={12} /> Would not recommend</span>
                   )}
                   </span>
-                  <span className="text-xs text-gray-300">
-                    {new Date(r.submittedAt).toLocaleDateString('en-PH', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                  <span className="text-xs text-gray-400">
+                    Submitted {formatAuditTimestamp(r.submittedAt)}
                   </span>
                 </div>
               </div>

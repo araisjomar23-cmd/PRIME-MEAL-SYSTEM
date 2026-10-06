@@ -9,6 +9,7 @@ import type { AttendanceLogRow, MarkAttendanceResult } from '../../features/atte
 import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 function FacilitatorAttendance() {
   const { activityIds, loading: idsLoading } = useMyActivityIds()
@@ -19,11 +20,18 @@ function FacilitatorAttendance() {
   const [dayNumber, setDayNumber] = useState(1)
   const [scanResult, setScanResult] = useState<MarkAttendanceResult | null>(null)
   const [checking, setChecking] = useState(false)
+  const [activitiesLoading, setActivitiesLoading] = useState(true)
+  const [refreshingLog, setRefreshingLog] = useState(false)
 
   const init = useCallback(async () => {
-    const [allActs, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
-    setActivities(allActs.filter((a) => activityIds.includes(a.id)))
-    setLog(logData.filter((row) => activityIds.includes(row.activityId)))
+    setActivitiesLoading(true)
+    try {
+      const [allActs, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
+      setActivities(allActs.filter((a) => activityIds.includes(a.id)))
+      setLog(logData.filter((row) => activityIds.includes(row.activityId)))
+    } finally {
+      setActivitiesLoading(false)
+    }
   }, [activityIds])
 
   useEffect(() => {
@@ -64,6 +72,16 @@ function FacilitatorAttendance() {
     }
   }
 
+  async function refreshLog() {
+    setRefreshingLog(true)
+    try {
+      const logData = await loadTodayLog()
+      setLog(logData.filter((row) => activityIds.includes(row.activityId)))
+    } finally {
+      setRefreshingLog(false)
+    }
+  }
+
   function downloadQR(activityId: string, title: string) {
     const canvas = document.getElementById(`fac-qr-canvas-${activityId}`) as HTMLCanvasElement | null
     if (!canvas) return
@@ -81,10 +99,20 @@ function FacilitatorAttendance() {
     <div className="p-8">
       <h1 className="text-2xl font-bold text-primary mb-6">Attendance & QR</h1>
 
+      {(idsLoading || activitiesLoading) && (
+        <div className="mb-6">
+          <LoadingIndicator label="Loading your assigned activities…" className="text-sm text-gray-500" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="panel p-5">
           <h2 className="text-base font-bold text-gray-900 mb-4">Mark Attendance</h2>
-          {scannableActivities.length === 0 ? (
+          {idsLoading || activitiesLoading ? (
+            <div className="py-8 flex justify-center">
+              <LoadingIndicator label="Loading activities…" className="text-sm text-gray-500" />
+            </div>
+          ) : scannableActivities.length === 0 ? (
             <EmptyState icon={<ClipboardList size={22} />} title="No open activities" subtitle="You have no open/upcoming assigned activities to scan for right now." />
           ) : (
             <div className="space-y-3 mb-4">
@@ -117,7 +145,7 @@ function FacilitatorAttendance() {
               </div>
               <button onClick={handleMark} disabled={checking} className="w-full btn-primary flex items-center justify-center gap-2 py-2.5 disabled:opacity-50">
                 <CheckCircle2 size={16} />
-                {checking ? 'Checking…' : 'Mark Attendance'}
+                {checking ? <LoadingIndicator label="Saving attendance…" /> : 'Mark Attendance'}
               </button>
             </div>
           )}
@@ -135,8 +163,8 @@ function FacilitatorAttendance() {
             <h2 className="text-base font-bold text-gray-900">
               Today's Log <span className="text-gray-400 font-normal text-sm">({log.filter((r) => activityIds.includes(r.activityId)).length})</span>
             </h2>
-            <button onClick={async () => setLog(await loadTodayLog())} className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline">
-              <RefreshCw size={12} /> Refresh
+            <button onClick={refreshLog} disabled={refreshingLog} className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline disabled:opacity-50">
+              {refreshingLog ? <LoadingIndicator label="Refreshing…" /> : <><RefreshCw size={12} /> Refresh</>}
             </button>
           </div>
           <div className="max-h-96 overflow-y-auto">

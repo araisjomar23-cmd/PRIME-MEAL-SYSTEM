@@ -7,6 +7,7 @@ import { SkeletonStatCard, SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const PILL_STYLES: Record<string, string> = {
   registered: 'bg-green-100 text-green-700',
@@ -83,6 +84,22 @@ function AdminParticipants() {
   }, [all, search, activityFilter, statusFilter])
 
   const countBy = (s: string) => all.filter((p) => p.status === s).length
+  const hasParticipantFilters = Boolean(search || activityFilter || statusFilter)
+  const clearParticipantFilters = () => {
+    setSearch('')
+    setActivityFilter('')
+    setStatusFilter('')
+  }
+  const participantsEmptyTitle = all.length === 0 ? 'No participant registrations yet' : 'No matching participants'
+  const participantsEmptySubtitle =
+    all.length === 0
+      ? 'Participant records will appear here after someone registers for an activity.'
+      : 'No participants match the current search and filters. Try broadening your criteria.'
+  const participantsEmptyAction = hasParticipantFilters ? (
+    <button type="button" onClick={clearParticipantFilters} className="text-sm font-semibold text-primary hover:underline">
+      Clear filters
+    </button>
+  ) : undefined
 
   return (
     <div className="p-4 md:p-8">
@@ -140,7 +157,7 @@ function AdminParticipants() {
       </div>
 
       <p className="text-xs text-gray-500 mb-2">
-        {loading ? 'Loading…' : `Showing ${filtered.length} of ${all.length} participants`}
+        {loading ? <LoadingIndicator label="Loading participants…" /> : `Showing ${filtered.length} of ${all.length} participants`}
       </p>
 
       {/* Desktop table view */}
@@ -166,8 +183,10 @@ function AdminParticipants() {
                     <td colSpan={8}>
                       <EmptyState
                         icon={<Users size={22} />}
-                        title="No participants found"
-                        subtitle={search || activityFilter || statusFilter ? 'Try adjusting your filters.' : 'Participants will appear here once youth register for activities.'}/>
+                        title={participantsEmptyTitle}
+                        subtitle={participantsEmptySubtitle}
+                        action={participantsEmptyAction}
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -223,8 +242,9 @@ function AdminParticipants() {
           <div className="panel">
             <EmptyState
               icon={<Users size={22} />}
-              title="No participants found"
-              subtitle={search || activityFilter || statusFilter ? 'Try adjusting your filters.' : 'Participants will appear here once youth register for activities.'}
+              title={participantsEmptyTitle}
+              subtitle={participantsEmptySubtitle}
+              action={participantsEmptyAction}
             />
           </div>
         ) : (

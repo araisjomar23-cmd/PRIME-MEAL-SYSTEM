@@ -22,6 +22,7 @@ export interface Activity {
   note: string
   createdAt: string
   updatedAt: string
+  archivedAt: string | null
   budgetAlloc: number
   budgetSpent: number
   date: string

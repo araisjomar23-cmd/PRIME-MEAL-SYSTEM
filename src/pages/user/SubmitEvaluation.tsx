@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { submitEvaluation } from '../../features/evaluations/evaluationService'
 import { useSearchParams } from 'react-router-dom'
-import { HeartHandshake } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
+import LoadingIndicator from '../../components/LoadingIndicator'
 import { Star } from 'lucide-react'
 
 const VALUABLE_OPTIONS = ['Knowledge and skills gained', 'Networking with other youth', "Facilitator's expertise", 'Activities and exercises', 'Overall program experience']
@@ -108,29 +109,37 @@ function SubmitEvaluation() {
     if (missing.length > 0) return setError('Please answer all required questions before submitting.')
 
     setSubmitting(true)
-    const result = await submitEvaluation({
-      refCode,
-      rating: Number(answers.overall_star),
-      feedback: feedback.trim(),
-      wouldRecommend: Number(answers.q4) >= 4,
-      responses: answers,
-    })
-    setSubmitting(false)
+    try {
+      const result = await submitEvaluation({
+        refCode,
+        rating: Number(answers.overall_star),
+        feedback: feedback.trim(),
+        wouldRecommend: Number(answers.q4) >= 4,
+        responses: answers,
+      })
 
-    if (!result.ok) {
-      setError(result.error || 'Failed to submit feedback.')
-      return
+      if (!result.ok) {
+        setError(result.error || 'Failed to submit feedback.')
+        return
+      }
+      setDone(true)
+    } catch (err) {
+      console.error('Evaluation submission error:', err)
+      setError('We could not submit your evaluation. Please check your connection and try again.')
+    } finally {
+      setSubmitting(false)
     }
-    setDone(true)
   }
 
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-md w-full text-center">
-          <HeartHandshake size={48} className="mx-auto mb-3 text-primary" />
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Thank You!</h1>
-          <p className="text-sm text-gray-500 mb-6">Your feedback helps CYDO improve future activities for Panabo City youth.</p>
+        <div role="status" aria-live="polite" className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-md w-full text-center">
+          <CheckCircle2 size={48} className="mx-auto mb-3 text-green-600" aria-hidden="true" />
+          <h1 className="text-xl font-bold text-gray-900 mb-1">Evaluation Submitted Successfully!</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Thank you for sharing your feedback. Your evaluation has been received and will help CYDO improve future activities for Panabo City youth.
+          </p>
           <button onClick={() => navigate('/')} className="w-full bg-primary text-white font-medium py-2.5 rounded-lg">
             Back to Activities
           </button>
@@ -287,7 +296,7 @@ function SubmitEvaluation() {
             disabled={submitting}
             className="w-full bg-primary text-white font-semibold py-3.5 text-base rounded-xl disabled:opacity-50 shadow-sm active:scale-[0.99] transition-transform"
           >
-            {submitting ? 'Submitting…' : 'Submit Evaluation'}
+            {submitting ? <LoadingIndicator label="Submitting evaluation…" /> : 'Submit Evaluation'}
           </button>
         </div>
       </div>

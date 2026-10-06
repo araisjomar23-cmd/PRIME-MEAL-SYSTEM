@@ -173,6 +173,199 @@ body {
   animation: urgency-pulse 2s ease-in-out infinite;
 }
 
+@page {
+  size: A4 landscape;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body {
+    color: #111827 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 9pt;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .admin-shell {
+    display: block !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  .admin-sidebar,
+  .admin-mobile-header {
+    display: none !important;
+  }
+
+  .admin-main {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .admin-reports-page {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-report {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #111827 !important;
+    font-size: 8.5pt;
+  }
+
+  .report-header {
+    margin-bottom: 8mm !important;
+    color: #111827 !important;
+  }
+
+  .report-header > div:first-child,
+  .report-header > div:nth-child(2),
+  .report-meta {
+    color: #4b5563 !important;
+  }
+
+  .report-meta {
+    line-height: 1.6;
+  }
+
+  .report-divider {
+    margin-bottom: 6mm !important;
+    border-color: #1a5c3a !important;
+  }
+
+  .report-section-title {
+    margin-top: 5mm !important;
+    margin-bottom: 2.5mm !important;
+    color: #1a5c3a !important;
+    font-size: 10pt !important;
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .report-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+    margin-bottom: 5mm !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-stat {
+    padding: 3mm !important;
+    border: 1px solid #d1d5db;
+    border-radius: 2mm !important;
+    background: #f8fafc !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-stat > div:first-child {
+    color: #4b5563 !important;
+    font-size: 7pt !important;
+  }
+
+  .report-stat > div:last-child {
+    margin-top: 1mm !important;
+    color: #111827 !important;
+    font-size: 13pt !important;
+  }
+
+  .report-table {
+    width: 100% !important;
+    margin-bottom: 5mm !important;
+    border-collapse: collapse !important;
+    font-size: 7.5pt !important;
+  }
+
+  .report-table thead {
+    display: table-header-group;
+  }
+
+  .report-table tr {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-table th {
+    padding: 2mm 1.5mm !important;
+    border-bottom: 1px solid #9ca3af;
+    background: #f3f4f6 !important;
+    color: #1f2937 !important;
+    vertical-align: bottom;
+  }
+
+  .report-table td {
+    padding: 1.8mm 1.5mm !important;
+    border-bottom: 1px solid #d1d5db;
+    color: #1f2937 !important;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .report-demographics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 5mm !important;
+    margin-bottom: 5mm !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-demo-list {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-demo-list > div:first-child {
+    color: #4b5563 !important;
+  }
+
+  .report-certifications {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10mm !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-signature {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .report-footer {
+    margin-top: 7mm !important;
+    padding-top: 3mm !important;
+    color: #4b5563 !important;
+    border-color: #9ca3af !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

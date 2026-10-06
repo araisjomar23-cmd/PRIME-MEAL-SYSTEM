@@ -10,6 +10,7 @@ import type { Program } from '../../types/program'
 import type { Facilitator } from '../../types/facilitator'
 import { useToast } from '../../components/useToast'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 interface Props {
   editingActivity: Activity | null
@@ -409,7 +410,9 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
               disabled={submitting}
               className="flex-1 bg-primary text-white rounded-lg py-2.5 font-medium disabled:opacity-50"
             >
-              {submitting ? (isEdit ? 'Saving…' : 'Publishing…') : isEdit ? 'Save Changes' : 'Publish Activity'}
+              {submitting ? (
+                <LoadingIndicator label={isEdit ? 'Saving changes…' : 'Publishing activity…'} />
+              ) : isEdit ? 'Save Changes' : 'Publish Activity'}
             </button>
             <button
               type="button"

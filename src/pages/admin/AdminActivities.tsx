@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Activity } from '../../types/activity'
 import ActivityFormModal from '../../features/activities/ActivityFormModal'
-import { Plus, Pencil, RotateCcw, XCircle } from 'lucide-react'
-import { fetchActivities, toggleActivityStatus, autoCloseExpiredActivities } from '../../features/activities/activityService'
+import { Archive, Plus, Pencil, RotateCcw, XCircle } from 'lucide-react'
+import { fetchActivities, setActivityArchived, toggleActivityStatus, autoCloseExpiredActivities } from '../../features/activities/activityService'
 import { useToast } from '../../components/useToast'
 import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
@@ -11,6 +11,7 @@ import { Pin as PinIcon } from 'lucide-react'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 import { getActivityStatusLabel } from '../../features/activities/activityStatus'
+import { formatAuditTimestamp } from '../../utils/audit'
 
 function barColor(pct: number) {
   if (pct >= 85) return 'bg-red-500'
@@ -35,10 +36,13 @@ function AdminActivities() {
   const [loading, setLoading] = useState(true)
   const [programFilter, setProgramFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [archiveFilter, setArchiveFilter] = useState('active')
   const [formOpen, setFormOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [activityToToggle, setActivityToToggle] = useState<Activity | null>(null)
+  const [activityToArchive, setActivityToArchive] = useState<Activity | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [updatingArchive, setUpdatingArchive] = useState(false)
 
  useEffect(() => {
   load()
@@ -71,6 +75,8 @@ async function load() {
 
   const filtered = useMemo(() => {
     return all.filter((a) => {
+      const isArchived = Boolean(a.archivedAt)
+      const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'archived' ? isArchived : !isArchived)
       const mP = !programFilter || String(a.programId) === programFilter
       const mS = !statusFilter || getActivityStatusLabel(
         a.status,
@@ -79,9 +85,33 @@ async function load() {
         a.startTime,
         a.endTime
       ) === statusFilter
-      return mP && mS
+      return matchesArchive && mP && mS
     })
-  }, [all, programFilter, statusFilter])
+  }, [all, archiveFilter, programFilter, statusFilter])
+  const hasActivityFilters = Boolean(programFilter || statusFilter || archiveFilter !== 'active')
+  const clearActivityFilters = () => {
+    setProgramFilter('')
+    setStatusFilter('')
+    setArchiveFilter('active')
+  }
+  const activitiesEmptyTitle = all.length === 0 ? 'No activities created yet' : 'No matching activities'
+  const activitiesEmptySubtitle =
+    all.length === 0
+      ? 'Create your first activity to publish opportunities and begin accepting registrations.'
+      : archiveFilter === 'archived'
+      ? 'Activities you archive will be kept here with their registrations and report history intact.'
+      : archiveFilter === 'active' && all.every((activity) => activity.archivedAt)
+      ? 'All activities are archived. Switch to Archived records to view or restore them.'
+      : 'No activities match the selected program or status. Clear the filters to see all activities.'
+  const activitiesEmptyAction = hasActivityFilters ? (
+    <button type="button" onClick={clearActivityFilters} className="text-sm font-semibold text-primary hover:underline">
+      Clear filters
+    </button>
+  ) : all.length === 0 ? (
+    <button type="button" onClick={openCreateForm} className="btn-primary inline-flex items-center gap-1.5">
+      <Plus size={15} /> Create activity
+    </button>
+  ) : undefined
 
 function handleToggle(a: Activity) {
   setActivityToToggle(a)
@@ -101,6 +131,35 @@ async function confirmToggle() {
   } else {
     showToast('Failed to update activity status.', 'error')
   }
+}
+
+async function confirmArchive() {
+  if (!activityToArchive) return
+  setUpdatingArchive(true)
+  const activity = activityToArchive
+  const isArchived = Boolean(activity.archivedAt)
+  const ok = await setActivityArchived(activity.id, !isArchived)
+  setUpdatingArchive(false)
+  if (ok) {
+    showToast(isArchived ? 'Activity restored to unarchived records.' : 'Activity archived. Its registrations and reports are preserved.', 'success')
+    setActivityToArchive(null)
+    load()
+  } else {
+    showToast(isArchived ? 'Failed to restore activity.' : 'Failed to archive activity.', 'error')
+  }
+}
+
+function canArchiveActivity(activity: Activity) {
+  const status = activity.status.toLowerCase()
+  const statusLabel = getActivityStatusLabel(
+    activity.status,
+    activity.startDate,
+    activity.endDate,
+    activity.startTime,
+    activity.endTime
+  )
+  return ['closed', 'cancelled', 'canceled', 'completed', 'draft'].includes(status) ||
+    ['Completed', 'Cancelled', 'Draft'].includes(statusLabel)
 }
 
   function openCreateForm() {
@@ -151,6 +210,15 @@ async function confirmToggle() {
           <option value="Completed">Completed</option>
           <option value="Cancelled">Cancelled</option>
         </select>
+        <select
+          value={archiveFilter}
+          onChange={(e) => setArchiveFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 sm:flex-none min-w-[140px]"
+        >
+          <option value="active">Unarchived records</option>
+          <option value="archived">Archived records</option>
+          <option value="all">All records</option>
+        </select>
       </div>
 
       <p className="text-xs text-gray-500 mb-2">
@@ -184,8 +252,10 @@ async function confirmToggle() {
                     <td colSpan={8}>
                       <EmptyState
                         icon={<PinIcon size={22} />}
-                        title="No activities found"
-                        subtitle={programFilter || statusFilter ? 'Try adjusting your filters.' : 'Click "Create New Activity" to get started.'}/>
+                        title={activitiesEmptyTitle}
+                        subtitle={activitiesEmptySubtitle}
+                        action={activitiesEmptyAction}
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -196,8 +266,22 @@ async function confirmToggle() {
                 return (
                   <tr key={a.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{a.title}</div>
+                      <div className="font-medium text-gray-900">
+                        {a.title}
+                        {a.archivedAt && <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-500">Archived</span>}
+                      </div>
                       <div className="text-xs text-gray-400">{a.venue}</div>
+                      <div className="mt-1 text-[10px] text-gray-500">
+                        Created {formatAuditTimestamp(a.createdAt)}
+                        <span className="mx-1">·</span>
+                        Updated {formatAuditTimestamp(a.updatedAt)}
+                        {a.archivedAt && (
+                          <>
+                            <span className="mx-1">·</span>
+                            Archived {formatAuditTimestamp(a.archivedAt)}
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-xs">{a.programName}</td>
                     <td className="px-4 py-3 text-xs">
@@ -239,17 +323,26 @@ async function confirmToggle() {
                     </td>
                    <td className="px-4 py-3">
                     <div className="flex gap-3">
-                      <button
+                      {!a.archivedAt && <button
                         onClick={() => openEditForm(a)}
                         className="inline-flex items-center gap-1 text-amber-600 text-xs font-semibold hover:underline">
                         <Pencil size={12} /> Edit
-                      </button>
-                      <button
+                      </button>}
+                      {!a.archivedAt && <button
                         onClick={() => handleToggle(a)}
                         className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline">
                         {a.status === 'closed' || a.status === 'cancelled' ? <RotateCcw size={12} /> : <XCircle size={12} />}
                         {a.status === 'closed' || a.status === 'cancelled' ? 'Reopen' : 'Close'}
-                      </button>
+                      </button>}
+                      {(a.archivedAt || canArchiveActivity(a)) && (
+                        <button
+                          onClick={() => setActivityToArchive(a)}
+                          className="inline-flex items-center gap-1 text-gray-600 text-xs font-semibold hover:underline"
+                        >
+                          {a.archivedAt ? <RotateCcw size={12} /> : <Archive size={12} />}
+                          {a.archivedAt ? 'Restore' : 'Archive'}
+                        </button>
+                      )}
                     </div>
                   </td>
                   </tr>
@@ -272,8 +365,9 @@ async function confirmToggle() {
           <div className="panel">
             <EmptyState
               icon={<PinIcon size={22} />}
-              title="No activities found"
-              subtitle={programFilter || statusFilter ? 'Try adjusting your filters.' : 'Click "Create New Activity" to get started.'}
+              title={activitiesEmptyTitle}
+              subtitle={activitiesEmptySubtitle}
+              action={activitiesEmptyAction}
             />
           </div>
         ) : (
@@ -286,7 +380,10 @@ async function confirmToggle() {
                 <div key={a.id} className="panel !p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-900">{a.title}</div>
+                      <div className="font-semibold text-gray-900">
+                        {a.title}
+                        {a.archivedAt && <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-500">Archived</span>}
+                      </div>
                       <div className="text-xs text-gray-400">{a.venue}</div>
                     </div>
                     <ActivityStatusBadge
@@ -305,6 +402,17 @@ async function confirmToggle() {
                     {a.date}
                     {formatTimeRange(a.startTime, a.endTime) && (
                       <span className="text-gray-400"> · {formatTimeRange(a.startTime, a.endTime)}</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mb-3">
+                    Created {formatAuditTimestamp(a.createdAt)}
+                    <span className="mx-1">·</span>
+                    Updated {formatAuditTimestamp(a.updatedAt)}
+                    {a.archivedAt && (
+                      <>
+                        <span className="mx-1">·</span>
+                        Archived {formatAuditTimestamp(a.archivedAt)}
+                      </>
                     )}
                   </div>
 
@@ -328,19 +436,28 @@ async function confirmToggle() {
                   )}
 
                   <div className="flex gap-2 border-t border-gray-100 pt-3">
-                    <button
+                    {!a.archivedAt && <button
                       onClick={() => openEditForm(a)}
                       className="flex-1 inline-flex items-center justify-center gap-1 text-amber-600 text-xs font-semibold border border-amber-200 rounded-lg py-2"
                     >
                       <Pencil size={12} /> Edit
-                    </button>
-                    <button
+                    </button>}
+                    {!a.archivedAt && <button
                       onClick={() => handleToggle(a)}
                       className="flex-1 inline-flex items-center justify-center gap-1 text-primary text-xs font-semibold border border-primary/20 rounded-lg py-2"
                     >
                       {a.status === 'closed' || a.status === 'cancelled' ? <RotateCcw size={12} /> : <XCircle size={12} />}
                       {a.status === 'closed' || a.status === 'cancelled' ? 'Reopen' : 'Close'}
-                    </button>
+                    </button>}
+                    {(a.archivedAt || canArchiveActivity(a)) && (
+                      <button
+                        onClick={() => setActivityToArchive(a)}
+                        className="flex-1 inline-flex items-center justify-center gap-1 text-gray-600 text-xs font-semibold border border-gray-200 rounded-lg py-2"
+                      >
+                        {a.archivedAt ? <RotateCcw size={12} /> : <Archive size={12} />}
+                        {a.archivedAt ? 'Restore' : 'Archive'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -369,6 +486,22 @@ async function confirmToggle() {
           onConfirm={confirmToggle}
           onCancel={() => {
             if (!updatingStatus) setActivityToToggle(null)
+          }}
+        />
+      )}
+      {activityToArchive && (
+        <ConfirmationDialog
+          title={activityToArchive.archivedAt ? 'Restore activity?' : 'Archive activity?'}
+          message={
+            activityToArchive.archivedAt
+              ? `Restore "${activityToArchive.title}" to active activity records?`
+              : `Archive "${activityToArchive.title}"? It will be hidden from public listings, while its registrations, attendance, evaluations, and report history remain preserved.`
+          }
+          confirmLabel={activityToArchive.archivedAt ? 'Restore activity' : 'Archive activity'}
+          pending={updatingArchive}
+          onConfirm={confirmArchive}
+          onCancel={() => {
+            if (!updatingArchive) setActivityToArchive(null)
           }}
         />
       )}

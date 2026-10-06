@@ -6,6 +6,7 @@ import type { PublicActivity } from './publicActivityService'
 import { supabase } from '../../lib/supabase'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 import { getActivityStatusLabel } from '../activities/activityStatus'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 interface Props {
   activityId: string
@@ -90,7 +91,9 @@ function ActivityModal({ activityId, onClose }: Props) {
         </button>
 
         {loading ? (
-          <div className="py-24 text-center text-gray-400">Loading…</div>
+          <div className="py-24 flex justify-center text-gray-500">
+            <LoadingIndicator label="Loading activity…" size="md" />
+          </div>
         ) : !activity ? (
           <div className="py-24 text-center text-gray-400">Activity not found.</div>
         ) : refCode ? (
@@ -159,7 +162,7 @@ function ActivityModal({ activityId, onClose }: Props) {
                   : soldOut
                   ? 'Activity Full'
                   : submitting
-                  ? 'Registering…'
+                  ? <LoadingIndicator label="Registering…" />
                   : 'Register Now'}
               </button>
             </div>

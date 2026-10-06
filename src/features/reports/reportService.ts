@@ -3,6 +3,7 @@ import { getActivityStatusLabel } from '../activities/activityStatus'
 
 interface ReportActivityRow {
   id: string
+  program_id: string
   title: string
   status: string
   slots: number
@@ -35,6 +36,47 @@ interface ReportEvaluationRow {
 }
 
 type ReportDimensionKey = 'gender_identity' | 'age_bracket' | 'barangay'
+
+export interface ReportFilterActivity {
+  id: string
+  title: string
+  programId: string
+  programName: string
+}
+
+interface ReportFilterActivityRow {
+  id: string
+  title: string
+  program_id: string
+  programs: { name: string | null }[] | { name: string | null } | null
+}
+
+export async function fetchReportFilterActivities(): Promise<ReportFilterActivity[]> {
+  const { data, error } = await supabase
+    .from('activities')
+    .select('id, title, program_id, programs(name)')
+    .order('title')
+
+  if (error) {
+    console.error('fetchReportFilterActivities error:', error.message)
+    throw new Error('Could not load activity and program filters.')
+  }
+
+  return (data || []).map((activity: ReportFilterActivityRow) => {
+    const program = Array.isArray(activity.programs) ? activity.programs[0] : activity.programs
+    return {
+      id: activity.id,
+      title: activity.title,
+      programId: activity.program_id,
+      programName: program?.name || '—',
+    }
+  })
+}
+
+export interface ReportFilters {
+  activityId?: string
+  programId?: string
+}
 
 export interface ReportData {
   period: string
@@ -76,29 +118,61 @@ export interface ReportData {
   insights: string[]
 }
 
-export async function generateReport(dateFrom: string, dateTo: string): Promise<ReportData> {
-  const { data: activities } = await supabase
+export async function generateReport(
+  dateFrom: string,
+  dateTo: string,
+  filters: ReportFilters = {}
+): Promise<ReportData> {
+  if (!dateFrom || !dateTo || dateFrom > dateTo) {
+    throw new Error('Choose a valid date range. The start date must be on or before the end date.')
+  }
+
+  let activitiesQuery = supabase
     .from('activities')
-    .select('id, title, status, slots, start_date, end_date, start_time, end_time, programs(name)')
-    .gte('start_date', dateFrom)
+    .select('id, program_id, title, status, slots, start_date, end_date, start_time, end_time, programs(name)')
     .lte('start_date', dateTo)
+    .gte('end_date', dateFrom)
+
+  if (filters.activityId) activitiesQuery = activitiesQuery.eq('id', filters.activityId)
+  if (filters.programId) activitiesQuery = activitiesQuery.eq('program_id', filters.programId)
+
+  const { data: activities, error: activityError } = await activitiesQuery
+  if (activityError) {
+    console.error('generateReport activity query error:', activityError.message)
+    throw new Error('Could not load activities for this report. Please try again.')
+  }
 
   const activityIds = (activities || []).map((a: ReportActivityRow) => a.id)
 
-  const { data: regs } = await supabase
+  const { data: regs, error: registrationError } = await supabase
     .from('registration_details')
     .select('id, activity_id, status, gender_identity, age_bracket, barangay')
     .in('activity_id', activityIds.length ? activityIds : ['none'])
 
-  const { data: budgetEntries } = await supabase
+  if (registrationError) {
+    console.error('generateReport registration query error:', registrationError.message)
+    throw new Error('Could not load participant data for this report. Please try again.')
+  }
+
+  const { data: budgetEntries, error: budgetError } = await supabase
     .from('budget_entries')
     .select('activity_id, amount, entry_type')
     .in('activity_id', activityIds.length ? activityIds : ['none'])
 
-  const { data: evals } = await supabase
+  if (budgetError) {
+    console.error('generateReport budget query error:', budgetError.message)
+    throw new Error('Could not load budget data for this report. Please try again.')
+  }
+
+  const { data: evals, error: evaluationError } = await supabase
     .from('evaluations')
     .select('activity_id, rating, would_recommend')
     .in('activity_id', activityIds.length ? activityIds : ['none'])
+
+  if (evaluationError) {
+    console.error('generateReport evaluation query error:', evaluationError.message)
+    throw new Error('Could not load evaluation data for this report. Please try again.')
+  }
 
   const regsByActivity: Record<string, ReportRegistrationRow[]> = {}
   ;(regs || []).forEach((r: ReportRegistrationRow) => {

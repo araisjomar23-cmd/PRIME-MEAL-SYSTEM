@@ -11,6 +11,7 @@ import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { UserSquare2 } from 'lucide-react'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const emptyForm = { name: '', initials: '', email: '', password: '' }
 
@@ -108,7 +109,7 @@ load()
             <tr>
               <th className="text-left px-4 py-3">Name</th>
               <th className="text-left px-4 py-3">Initials</th>
-              <th className="text-left px-4 py-3">Email</th>
+              <th className="text-left px-4 py-3">Account Email</th>
               <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3">Activities</th>
               <th className="text-left px-4 py-3">Actions</th>
@@ -195,7 +196,7 @@ load()
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-gray-900 truncate">{f.name}</div>
-                    <div className="text-xs text-gray-400 truncate">{f.email}</div>
+                    <div className="text-xs text-gray-400 truncate">Account: {f.email}</div>
                   </div>
                   <span
                     className={`shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
@@ -295,7 +296,7 @@ load()
                   disabled={submitting}
                   className="flex-1 bg-primary text-white rounded-lg py-2.5 font-medium disabled:opacity-50"
                 >
-                  {submitting ? 'Creating…' : 'Create Account'}
+                  {submitting ? <LoadingIndicator label="Creating account…" /> : 'Create Account'}
                 </button>
                 <button
                   type="button"

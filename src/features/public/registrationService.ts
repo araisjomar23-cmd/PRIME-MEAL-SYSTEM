@@ -30,6 +30,7 @@ export async function fetchActivityById(id: number): Promise<PublicActivity | nu
       programs ( id, name )
     `)
     .eq('id', id)
+    .is('archived_at', null)
     .single()
 
   if (error || !data) return null
@@ -85,6 +86,19 @@ export async function registerParticipant(activityId: number): Promise<RegisterR
 
     if (!user) {
     return { ok: false, error: 'Please login first.' }
+    }
+
+    const { data: activity, error: activityError } = await supabase
+      .from('activities')
+      .select('archived_at')
+      .eq('id', activityId)
+      .maybeSingle()
+
+    if (activityError) {
+      return { ok: false, error: 'Could not verify that this activity is available. Please refresh and try again.' }
+    }
+    if (!activity || activity.archived_at) {
+      return { ok: false, error: 'This activity has been archived and is no longer accepting registrations.' }
     }
 
     // Single atomic call — the lock inside the RPC handles the race.

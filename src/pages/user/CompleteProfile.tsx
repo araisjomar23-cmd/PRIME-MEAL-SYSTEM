@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { getProvinces, getCities, getBarangays } from '../../features/public/region11Data'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const YOUTH_CLASSES = ['In-School Youth', 'Out-of-School Youth', 'Working Youth', 'Person with Disability (PWD Youth)']
 const SECTORAL_GROUPS = ['Indigenous People', 'LGBTQIA+', 'Solo Parent', 'Youth with Disability', 'None']
@@ -214,7 +215,7 @@ export default function CompleteProfile() {
           disabled={saving}
           className="mt-8 w-full btn-primary py-3 disabled:opacity-50"
         >
-          {saving ? 'Saving…' : 'Save Profile'}
+          {saving ? <LoadingIndicator label="Saving profile…" /> : 'Save Profile'}
         </button>
       </div>
     </div>

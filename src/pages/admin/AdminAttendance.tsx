@@ -9,6 +9,8 @@ import { ClipboardList, Download, ArrowLeft,QrCode, RefreshCw, CheckCircle2 } fr
 import { SkeletonCard } from '../../components/Skeleton'
 import { supabase } from '../../lib/supabase'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import LoadingIndicator from '../../components/LoadingIndicator'
+import { formatAuditTimestamp } from '../../utils/audit'
 
 function AdminAttendance() {
   const [activities, setActivities] = useState<Activity[]>([])
@@ -20,6 +22,16 @@ function AdminAttendance() {
   const [scanResult, setScanResult] = useState<MarkAttendanceResult | null>(null)
   const [checking, setChecking] = useState(false)
   const [selectedQrActivityId, setSelectedQrActivityId] = useState<string | null>(null)
+  const [refreshingLog, setRefreshingLog] = useState(false)
+
+  async function refreshLog() {
+    setRefreshingLog(true)
+    try {
+      setLog(await loadTodayLog())
+    } finally {
+      setRefreshingLog(false)
+    }
+  }
 
   const init = useCallback(async () => {
     const [acts, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
@@ -150,7 +162,7 @@ function AdminAttendance() {
               className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-base disabled:opacity-50"
             >
               <CheckCircle2 size={18} />
-              {checking ? 'Checking…' : 'Mark Attendance'}
+              {checking ? <LoadingIndicator label="Saving attendance…" /> : 'Mark Attendance'}
             </button>
           </div>
 
@@ -174,10 +186,11 @@ function AdminAttendance() {
               Today's Log <span className="text-gray-400 font-normal text-sm">({log.length})</span>
             </h2>
             <button
-              onClick={async () => setLog(await loadTodayLog())}
-              className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline">
+              onClick={refreshLog}
+              disabled={refreshingLog}
+              className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline disabled:opacity-50">
 
-              <RefreshCw size={12} /> Refresh
+              {refreshingLog ? <LoadingIndicator label="Refreshing…" /> : <><RefreshCw size={12} /> Refresh</>}
             </button>
           </div>
 
@@ -202,11 +215,9 @@ function AdminAttendance() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-xs text-gray-400">
-                      {new Date(row.checkedInAt).toLocaleTimeString('en-PH', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                    <div className="text-xs text-gray-500">{formatAuditTimestamp(row.checkedInAt)}</div>
+                    <div className="text-[10px] text-gray-400 capitalize">
+                      Check-in method: {row.method || 'Not recorded'}
                     </div>
                     {row.dayNumber > 1 && (
                       <div className="text-[10px] text-gray-400">Day {row.dayNumber}</div>

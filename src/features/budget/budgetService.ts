@@ -49,7 +49,7 @@ export async function fetchBudgetOverview(): Promise<BudgetOverview> {
     amount: Number(e.amount) || 0,
     entryType: e.entry_type,
     recordedAt: e.recorded_at,
-    recordedBy: e.recorded_by || 'Admin',
+    recordedBy: e.recorded_by || 'Not recorded',
   }))
 
   const entriesByActivity: Record<string, BudgetEntry[]> = {}

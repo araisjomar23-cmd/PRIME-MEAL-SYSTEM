@@ -81,6 +81,7 @@ export async function fetchPublicActivities(): Promise<PublicActivity[]> {
   preview_desc, full_desc, outcomes, schedule, bring, note,
   programs ( id, name )
 `)
+    .is('archived_at', null)
     .not('status', 'eq', 'closed')
     .order('created_at', { ascending: false })
 

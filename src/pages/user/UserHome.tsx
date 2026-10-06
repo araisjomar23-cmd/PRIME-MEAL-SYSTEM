@@ -14,6 +14,9 @@ import { autoCloseExpiredActivities } from '../../features/activities/activitySe
 import { supabase } from '../../lib/supabase'
 import logo from '../../assets/CYDO LOGO.jpg'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import { EmptyState } from '../../components/EmptyState'
+import { CalendarX } from 'lucide-react'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const PROGRAMS = [
   { name: 'Health', icon: HeartPulse },
@@ -200,13 +203,39 @@ function UserHome() {
       {/* Cards */}
       <div id="activities-section" className="max-w-5xl mx-auto px-6 py-8">
         <p className="text-sm text-gray-500 mb-5">
-          {loading ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? 'activity' : 'activities'} found`}
+          {loading ? <LoadingIndicator label="Loading activities…" /> : `${filtered.length} ${filtered.length === 1 ? 'activity' : 'activities'} found`}
         </p>
 
         {loading ? (
-          <div className="text-center text-gray-400 py-16">Loading activities…</div>
+          <div className="flex justify-center py-16">
+            <LoadingIndicator label="Loading activities…" size="md" className="text-sm text-gray-500" />
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-gray-400 py-16">No activities found.</div>
+          <div className="panel">
+            <EmptyState
+              icon={<CalendarX size={24} />}
+              title={activities.length === 0 ? 'No activities available right now' : 'No activities match your search'}
+              subtitle={
+                activities.length === 0
+                  ? 'New activities will appear here when they are published. Please check back soon.'
+                  : 'Try another search or choose a different program to explore available activities.'
+              }
+              action={
+                activities.length > 0 && (search || programFilter) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch('')
+                      setProgramFilter('')
+                    }}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    Clear search and program
+                  </button>
+                ) : undefined
+              }
+            />
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((a) => {

@@ -6,6 +6,7 @@ import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const PILL_STYLES: Record<string, string> = {
   registered: 'bg-green-100 text-green-700',
@@ -69,7 +70,7 @@ function FacilitatorParticipants() {
       </div>
 
       <p className="text-xs text-gray-500 mb-2">
-        {loading ? 'Loading…' : `Showing ${filtered.length} of ${all.length} participants`}
+        {loading ? <LoadingIndicator label="Loading participants…" /> : `Showing ${filtered.length} of ${all.length} participants`}
       </p>
 
       <div className="panel overflow-x-auto">

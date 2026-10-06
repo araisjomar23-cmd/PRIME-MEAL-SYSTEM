@@ -1,3 +1,5 @@
+import LoadingIndicator from './LoadingIndicator'
+
 interface ConfirmationDialogProps {
   title: string
   message: string
@@ -57,7 +59,7 @@ export default function ConfirmationDialog({
               destructive ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:opacity-90'
             }`}
           >
-            {pending ? 'Please wait…' : confirmLabel}
+            {pending ? <LoadingIndicator label="Please wait…" /> : confirmLabel}
           </button>
         </div>
       </section>

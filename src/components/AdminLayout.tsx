@@ -55,7 +55,7 @@ function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="admin-shell flex min-h-screen bg-gray-50">
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (
         <div
@@ -65,7 +65,7 @@ function AdminLayout() {
       )}
 
       <aside
-        className={`w-64 bg-white border-r border-gray-200 flex flex-col shrink-0 h-screen fixed md:sticky top-0 z-50 transition-transform duration-200 ${
+        className={`admin-sidebar w-64 bg-white border-r border-gray-200 flex flex-col shrink-0 h-screen fixed md:sticky top-0 z-50 transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >
@@ -135,7 +135,7 @@ function AdminLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
 
-        <div className="md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 flex items-center gap-3 px-4 py-3">
+        <div className="admin-mobile-header md:hidden sticky top-0 z-30 bg-white border-b border-gray-200 flex items-center gap-3 px-4 py-3">
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-gray-600 hover:text-gray-900"
@@ -145,7 +145,7 @@ function AdminLayout() {
           <div className="text-sm font-bold text-gray-800">City Youth Development Office</div>
         </div>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="admin-main flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { CANCELLATION_REASON_MAX_LENGTH } from '../features/public/RegistrationConstants'
+import LoadingIndicator from './LoadingIndicator'
 
 interface CancelRegistrationModalProps {
   activityTitle: string
@@ -81,7 +82,7 @@ export default function CancelRegistrationModal({
               disabled={submitting}
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {submitting ? 'Cancelling…' : 'Cancel registration'}
+              {submitting ? <LoadingIndicator label="Cancelling registration…" /> : 'Cancel registration'}
             </button>
           </div>
         </form>

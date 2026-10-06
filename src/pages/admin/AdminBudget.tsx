@@ -7,6 +7,8 @@ import { SkeletonStatCard, SkeletonCard } from '../../components/Skeleton'
 import type { Activity } from '../../types/activity'
 import type { BudgetEntry } from '../../features/budget/budgetService'
 import BudgetWarning from '../../components/BudgetWarning'
+import LoadingIndicator from '../../components/LoadingIndicator'
+import { formatAuditTimestamp } from '../../utils/audit'
 
 const EXPENSE_CATEGORIES = [
   'Food & Catering',
@@ -258,7 +260,7 @@ function ActivityBudgetDetail({
             onClick={handleAllocate}
             disabled={saving}
             className="btn-primary inline-flex items-center justify-center gap-1.5 disabled:opacity-50">
-            <Wallet size={14} /> Allocate
+            {saving ? <LoadingIndicator label="Allocating…" /> : <><Wallet size={14} /> Allocate</>}
           </button>
         </div>
       </div>
@@ -312,7 +314,7 @@ function ActivityBudgetDetail({
           <table className="min-w-full text-xs">
             <thead className="text-gray-400">
               <tr>
-                <th className="text-left py-1.5">Date & Time</th>
+                <th className="text-left py-1.5">Recorded Date & Time</th>
                 <th className="text-left py-1.5">Category</th>
                 <th className="text-left py-1.5">Description</th>
                 <th className="text-left py-1.5">Amount</th>
@@ -330,11 +332,7 @@ function ActivityBudgetDetail({
                 entries.map((e) => (
                   <tr key={e.id} className="border-t border-gray-50">
                     <td className="py-1.5">
-                      {new Date(e.recordedAt).toLocaleDateString('en-PH', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {formatAuditTimestamp(e.recordedAt)}
                     </td>
                     <td className="py-1.5">{e.category || '—'}</td>
                     <td className="py-1.5 max-w-[200px] truncate">{e.description || '—'}</td>
@@ -360,15 +358,11 @@ function ActivityBudgetDetail({
                     <span className="font-semibold text-red-500">₱{e.amount.toLocaleString()}</span>
                   </div>
                   {e.description && <div className="text-gray-500 mb-1">{e.description}</div>}
-                  <div className="flex justify-between text-gray-400 text-[11px]">
+                  <div className="flex flex-col gap-1 text-gray-500 text-[11px]">
                     <span>
-                      {new Date(e.recordedAt).toLocaleDateString('en-PH', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      Recorded {formatAuditTimestamp(e.recordedAt)}
                     </span>
-                    <span>{e.recordedBy}</span>
+                    <span>Recorded by {e.recordedBy || 'Not recorded'}</span>
                   </div>
                 </div>
               ))}
@@ -414,7 +408,7 @@ function ActivityBudgetDetail({
           onClick={handleExpense}
           disabled={saving}
           className="w-full btn-primary inline-flex items-center justify-center gap-1.5 disabled:opacity-50">
-          <Plus size={14} /> Record Expense
+          {saving ? <LoadingIndicator label="Recording…" /> : <><Plus size={14} /> Record Expense</>}
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 import cydoLogo from '../../assets/CYDO LOGO.jpg'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 const MIN_PASSWORD_LENGTH = 6
 
@@ -200,7 +201,7 @@ export default function ParticipantSignup() {
               transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading && <Spinner />}
-            {loading ? 'Creating account…' : 'Create Account'}
+            {loading ? <LoadingIndicator label="Creating account…" /> : 'Create Account'}
           </button>
         </form>
 

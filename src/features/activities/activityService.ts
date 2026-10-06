@@ -32,6 +32,7 @@ interface ActivityListRow {
   note: string | null
   created_at: string
   updated_at: string
+  archived_at: string | null
   programs: { id: string; name: string | null }[] | { id: string; name: string | null } | null
 }
 
@@ -66,6 +67,7 @@ export async function autoCloseExpiredActivities(): Promise<void> {
   const { data: candidates, error } = await supabase
     .from('activities')
     .select('id, end_date, end_time, status')
+    .is('archived_at', null)
     .neq('status', 'closed')
 
   if (error || !candidates) return
@@ -93,7 +95,7 @@ export async function fetchActivities(): Promise<Activity[]> {
       start_date, end_date, start_time, end_time,
       venue, preview_desc, full_desc,
       outcomes, schedule, bring, note,
-      created_at, updated_at,
+      created_at, updated_at, archived_at,
       programs ( id, name )
     `)
     .order('created_at', { ascending: false })
@@ -149,10 +151,25 @@ export async function fetchActivities(): Promise<Activity[]> {
     note: a.note || '',
     createdAt: a.created_at,
     updatedAt: a.updated_at,
+    archivedAt: a.archived_at,
     budgetAlloc: budgetMap[a.id]?.allocated || 0,
     budgetSpent: budgetMap[a.id]?.spent || 0,
     date: formatDateRange(a.start_date, a.end_date),
   }))
+}
+
+export async function setActivityArchived(id: string, archived: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from('activities')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', id)
+
+  if (error) {
+    console.error('setActivityArchived error:', error.message)
+    return false
+  }
+
+  return true
 }
 
 export async function toggleActivityStatus(

@@ -4,6 +4,7 @@ import ParticipantLayout from '../../layouts/ParticipantLayout'
 import { getProvinces, getCities, getBarangays } from '../../features/public/region11Data'
 import { User, Pencil, Save, X } from 'lucide-react'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 interface ParticipantRow {
   id: number
@@ -185,7 +186,7 @@ export default function ParticipantProfile() {
               <X size={15} /> Cancel
             </button>
             <button onClick={handleSave} disabled={saving} className="btn-primary inline-flex items-center gap-2">
-              <Save size={15} /> {saving ? 'Saving…' : 'Save'}
+              {saving ? <LoadingIndicator label="Saving…" /> : <><Save size={15} /> Save</>}
             </button>
           </div>
         )}

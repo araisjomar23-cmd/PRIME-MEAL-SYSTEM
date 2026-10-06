@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../features/auth/useAuth'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 import { getActivityStatusLabel } from '../../features/activities/activityStatus'
+import LoadingIndicator from '../../components/LoadingIndicator'
 
 function ActivityDetail() {
   const { id } = useParams()
@@ -81,7 +82,11 @@ function ActivityDetail() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
+        <LoadingIndicator label="Loading activity…" size="md" />
+      </div>
+    )
   }
 
   if (!activity) {
@@ -191,7 +196,7 @@ function ActivityDetail() {
                 : soldOut
                 ? 'Activity Full'
                 : submitting
-                ? 'Registering…'
+                ? <LoadingIndicator label="Registering…" />
                 : 'Register Now'}
             </button>
           </div>
