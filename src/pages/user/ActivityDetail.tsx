@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchActivityById, registerParticipant } from '../../features/public/registrationService'
 import type { PublicActivity } from '../../features/public/publicActivityService'
 import { CheckCircle2 } from 'lucide-react'
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../features/auth/AuthContext'
+import { useAuth } from '../../features/auth/useAuth'
 import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 import { getActivityStatusLabel } from '../../features/activities/activityStatus'
 
@@ -20,25 +20,7 @@ function ActivityDetail() {
   const [error, setError] = useState('')
   const [refCode, setRefCode] = useState('')
 
-  useEffect(() => {
-    if (id) load(id)
-  }, [id])
-
-  useEffect(() => {
-    if (!id) return
-
-    const channel = supabase
-      .channel(`activity-detail-live-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `id=eq.${id}` }, () => load(id))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${id}` }, () => load(id))
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [id])
-
-  async function load(activityId: string) {
+  const load = useCallback(async (activityId: string) => {
     setLoading(true)
     const numericActivityId = Number(activityId)
     const data = Number.isFinite(numericActivityId)
@@ -46,7 +28,25 @@ function ActivityDetail() {
       : null
     setActivity(data)
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (id) void Promise.resolve().then(() => load(id))
+  }, [id, load])
+
+  useEffect(() => {
+    if (!id) return
+
+    const channel = supabase
+      .channel(`activity-detail-live-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `id=eq.${id}` }, () => void load(id))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `activity_id=eq.${id}` }, () => void load(id))
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [id, load])
 
   async function handleRegister() {
     if (!activity) return

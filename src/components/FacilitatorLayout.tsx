@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, ClipboardList, Users } from 'lucide-react'
 import { logoutAdmin } from '../features/auth/authService'
-import { useAuth } from '../features/auth/AuthContext'
+import { useAuth } from '../features/auth/useAuth'
 
 const navItems = [
   { to: '/admin/facilitator-portal', label: 'Dashboard', icon: <LayoutDashboard size={18} />, end: true },

@@ -2,6 +2,17 @@ import { supabase } from '../../lib/supabase'
 import { fetchActivities } from '../activities/activityService'
 import type { Activity } from '../../types/activity'
 
+interface BudgetEntryRow {
+  id: string
+  activity_id: string
+  category: string | null
+  description: string | null
+  amount: number | string
+  entry_type: 'allocation' | 'expense'
+  recorded_at: string
+  recorded_by: string | null
+}
+
 export interface BudgetEntry {
   id: string
   activityId: string
@@ -30,7 +41,7 @@ export async function fetchBudgetOverview(): Promise<BudgetOverview> {
     .select('id, activity_id, category, description, amount, entry_type, recorded_at, recorded_by')
     .order('recorded_at', { ascending: false })
 
-  const allEntries: BudgetEntry[] = (entries || []).map((e: any) => ({
+  const allEntries: BudgetEntry[] = (entries || []).map((e: BudgetEntryRow) => ({
     id: e.id,
     activityId: e.activity_id,
     category: e.category || '',

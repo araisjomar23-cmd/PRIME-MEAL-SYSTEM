@@ -30,3 +30,20 @@ export async function getAdminRole(userId: string): Promise<string | null> {
 
   return data?.role ?? null
 }
+
+export async function handleLogout(): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const { error } = await supabase.auth.signOut()
+
+    if (error) {
+      console.error('Supabase signOut error:', error.message)
+      return { success: false, error: error.message }
+    }
+
+    localStorage.removeItem('cydo-remember-me')
+    return { success: true, error: null }
+  } catch (error) {
+    console.error('Unexpected error during logout:', error)
+    return { success: false, error: 'An unexpected error occurred.' }
+  }
+}

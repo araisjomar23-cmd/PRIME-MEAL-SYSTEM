@@ -3,6 +3,51 @@ import type { Activity } from '../../types/activity'
 import type { Program } from '../../types/program'
 import type { Facilitator } from '../../types/facilitator'
 
+interface ExpiredActivityRow {
+  id: string
+  end_date: string | null
+  end_time: string | null
+  status: string
+}
+
+interface ActivityListRow {
+  id: string
+  program_id: string
+  title: string | null
+  color_bg: string | null
+  tags: string[] | null
+  status: Activity['status'] | null
+  slots: number | null
+  taken: number | null
+  start_date: string
+  end_date: string
+  start_time: string
+  end_time: string
+  venue: string | null
+  preview_desc: string | null
+  full_desc: string | null
+  outcomes: string[] | null
+  schedule: string[] | null
+  bring: string[] | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  programs: { id: string; name: string | null }[] | { id: string; name: string | null } | null
+}
+
+interface FacilitatorListRow {
+  id: string
+  name: string
+  initials: string | null
+}
+
+interface ActivityFacilitatorRow {
+  facilitators:
+    | { id: string; name: string; initials: string }[]
+    | { id: string; name: string; initials: string }
+    | null
+}
+
 function formatDateRange(startDate?: string, endDate?: string): string {
   if (!startDate) return '—'
   const fmt = (d: string) =>
@@ -26,13 +71,13 @@ export async function autoCloseExpiredActivities(): Promise<void> {
   if (error || !candidates) return
 
   const expiredIds = candidates
-    .filter((a: any) => {
+    .filter((a: ExpiredActivityRow) => {
       if (!a.end_date) return false
       if (a.end_date < todayDate) return true
       if (a.end_date === todayDate && a.end_time && a.end_time < nowTime) return true
       return false
     })
-    .map((a: any) => a.id)
+    .map((a: ExpiredActivityRow) => a.id)
 
   if (expiredIds.length === 0) return
 
@@ -80,10 +125,10 @@ export async function fetchActivities(): Promise<Activity[]> {
     if (r.status !== 'inactive') regMap[r.activity_id] = (regMap[r.activity_id] || 0) + 1
   })
 
-  return (acts || []).map((a: any) => ({
+  return (acts || []).map((a: ActivityListRow) => ({
     id: a.id,
     programId: a.program_id,
-    programName: a.programs?.name || '—',
+    programName: (Array.isArray(a.programs) ? a.programs[0]?.name : a.programs?.name) || '—',
     title: a.title || '',
     colorBg: a.color_bg || '',
     tags: a.tags || [],
@@ -122,7 +167,9 @@ export async function toggleActivityStatus(
   const todayDate = now.toISOString().slice(0, 10)
   const nowTime = now.toTimeString().slice(0, 5)
 
-  const updatePayload: Record<string, any> = { status: newStatus }
+  const updatePayload: { status: string; start_date?: string; start_time?: string; end_date?: string } = {
+    status: newStatus,
+  }
 
   if (isReopening) {
     updatePayload.start_date = todayDate
@@ -160,7 +207,7 @@ export async function fetchFacilitators(): Promise<Facilitator[]> {
     console.error('fetchFacilitators error:', error.message)
     return []
   }
-  return (data || []).map((f: any) => ({
+  return (data || []).map((f: FacilitatorListRow) => ({
     id: f.id,
     name: f.name,
     initials: f.initials || f.name.charAt(0).toUpperCase(),
@@ -178,11 +225,12 @@ export async function fetchActivityFacilitators(activityId: string): Promise<Fac
     return []
   }
 
-  return (data || []).map((r: any) => ({
-    id: r.facilitators.id,
-    name: r.facilitators.name,
-    initials: r.facilitators.initials,
-  }))
+  return (data || []).flatMap((r: ActivityFacilitatorRow) => {
+    const facilitator = Array.isArray(r.facilitators) ? r.facilitators[0] : r.facilitators
+    return facilitator
+      ? [{ id: facilitator.id, name: facilitator.name, initials: facilitator.initials }]
+      : []
+  })
 }
 
 function formatDateText(startDate: string, endDate: string): string {

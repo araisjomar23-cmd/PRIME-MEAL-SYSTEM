@@ -34,13 +34,14 @@ export async function fetchActivityById(id: number): Promise<PublicActivity | nu
 
   if (error || !data) return null
 
+  const program = Array.isArray(data.programs) ? data.programs[0] : data.programs
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return {
     id: String(data.id), // Kept as string to satisfy the PublicActivity interface type boundary
     programId: data.program_id,
-    programName: (data as any).programs?.name || '—',
+    programName: program?.name || '—',
     title: data.title || '',
     colorBg: data.color_bg || '',
     tags: data.tags || [],

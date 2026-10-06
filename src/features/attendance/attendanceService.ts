@@ -1,5 +1,25 @@
 import { supabase } from '../../lib/supabase'
 
+interface AttendanceLogDbRow {
+  id: string
+  checked_in_at: string
+  day_number: number
+  method: string
+  activity_id: string
+  registration_id: string
+}
+
+interface RegistrationLookupRow {
+  id: string
+  ref_code: string | null
+  name: string | null
+}
+
+interface ActivityLookupRow {
+  id: string
+  title: string | null
+}
+
 export interface AttendanceLogRow {
   id: string
   checkedInAt: string
@@ -26,22 +46,22 @@ export async function loadTodayLog(): Promise<AttendanceLogRow[]> {
     return []
   }
 
-  const regIds = [...new Set((logs || []).map((l: any) => l.registration_id))]
-  const activityIds = [...new Set((logs || []).map((l: any) => l.activity_id))]
+  const regIds = [...new Set((logs || []).map((l: AttendanceLogDbRow) => l.registration_id))]
+  const activityIds = [...new Set((logs || []).map((l: AttendanceLogDbRow) => l.activity_id))]
 
   const [{ data: regs }, { data: acts }] = await Promise.all([
     regIds.length
       ? supabase.from('registration_details').select('id, ref_code, name').in('id', regIds)
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as RegistrationLookupRow[] }),
     activityIds.length
       ? supabase.from('activities').select('id, title').in('id', activityIds)
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as ActivityLookupRow[] }),
   ])
 
-  const regMap = Object.fromEntries((regs || []).map((r: any) => [r.id, r]))
-  const actMap = Object.fromEntries((acts || []).map((a: any) => [a.id, a.title]))
+  const regMap = Object.fromEntries((regs || []).map((r: RegistrationLookupRow) => [r.id, r]))
+  const actMap = Object.fromEntries((acts || []).map((a: ActivityLookupRow) => [a.id, a.title]))
 
-  return (logs || []).map((row: any) => ({
+  return (logs || []).map((row: AttendanceLogDbRow) => ({
     id: row.id,
     checkedInAt: row.checked_in_at,
     dayNumber: row.day_number,

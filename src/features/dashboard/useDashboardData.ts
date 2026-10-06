@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchActivities } from '../activities/activityService'
 import { fetchParticipants } from '../participants/participantService'
 import { fetchEvaluations, type EvaluationStats, type EvaluationRow } from '../evaluations/evaluationService'
@@ -86,15 +86,14 @@ export function useDashboardData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  async function refresh() {
-    setLoading(true)
-    setError(null)
+  const loadData = useCallback(async () => {
     try {
       const [acts, all, evalResult] = await Promise.all([
         fetchActivities(),
         fetchParticipants(),
         fetchEvaluations(),
       ])
+      setError(null)
 
       const totalReg = all.length
       const totalAtt = all.filter((p) => p.status === 'attended' || p.status === 'completed').length
@@ -173,22 +172,27 @@ export function useDashboardData() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    await loadData()
+  }, [loadData])
 
   useEffect(() => {
-    refresh()
+    void Promise.resolve().then(loadData)
 
     const channel = supabase
       .channel(`dashboard-live-updates-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => refresh())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, () => refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities' }, () => void loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, () => void loadData())
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [loadData])
 
   return { data, loading, error, refresh }
 }

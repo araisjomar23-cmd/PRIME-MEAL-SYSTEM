@@ -5,7 +5,7 @@ import { Mail, Lock, Eye, EyeOff, CalendarCheck2, Users, Wallet, Check } from 'l
 import logo from '../../assets/CYDO LOGO.jpg'
 import { usePageTitle } from '../../hooks/usePageTitle'
 import { supabase } from '../../lib/supabase' // Removed persistRememberMe import
-import { useAuth } from '../../features/auth/AuthContext'
+import { useAuth } from '../../features/auth/useAuth'
 
 const FEATURES = [
   { icon: CalendarCheck2, label: 'Discover Youth Programs' },

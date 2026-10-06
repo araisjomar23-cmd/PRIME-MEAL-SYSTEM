@@ -8,7 +8,7 @@ import {
 import type { Activity } from '../../types/activity'
 import type { Program } from '../../types/program'
 import type { Facilitator } from '../../types/facilitator'
-import { useToast } from '../../components/ToastProvider'
+import { useToast } from '../../components/useToast'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 interface Props {

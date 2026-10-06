@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchParticipants } from '../../features/participants/participantService'
 import ParticipantModal from '../../features/participants/ParticipantModal'
 import type { Registration } from '../../types/registration'
@@ -23,8 +23,15 @@ function AdminParticipants() {
   const [statusFilter, setStatusFilter] = useState('')
   const [selected, setSelected] = useState<Registration | null>(null)
 
- useEffect(() => {
-    load()
+  const load = useCallback(async () => {
+    setLoading(true)
+    const data = await fetchParticipants()
+    setAll(data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    void Promise.resolve().then(load)
 
     const channel = supabase
       .channel(`participants-live-${Math.random().toString(36).slice(2)}`)
@@ -34,14 +41,7 @@ function AdminParticipants() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
-
-  async function load() {
-    setLoading(true)
-    const data = await fetchParticipants()
-    setAll(data)
-    setLoading(false)
-  }
+  }, [load])
 
   function handleStatusChange(ref: string, newStatus: string) {
   setAll((prev) =>

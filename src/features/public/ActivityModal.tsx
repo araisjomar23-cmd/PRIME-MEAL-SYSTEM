@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { X, MapPin, Calendar, Clock, CheckCircle2 } from 'lucide-react'
 import { fetchActivityById, registerParticipant } from './registrationService'
@@ -20,21 +20,21 @@ function ActivityModal({ activityId, onClose }: Props) {
   const [error, setError] = useState('')
   const [refCode, setRefCode] = useState('')
 
+  const load = useCallback(async (id: string) => {
+    setLoading(true)
+    const numericActivityId = Number(id)
+    const data = Number.isFinite(numericActivityId) ? await fetchActivityById(numericActivityId) : null
+    setActivity(data)
+    setLoading(false)
+  }, [])
+
   useEffect(() => {
-    load(activityId)
+    void Promise.resolve().then(() => load(activityId))
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = ''
     }
-  }, [activityId])
-
-  async function load(id: string) {
-    setLoading(true)
-    const activityId = Number(id)
-    const data = Number.isFinite(activityId) ? await fetchActivityById(activityId) : null
-    setActivity(data)
-    setLoading(false)
-  }
+  }, [activityId, load])
 
   async function handleRegister() {
     if (!activity) return

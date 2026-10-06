@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { fetchActivities } from '../../features/activities/activityService'
 import { loadTodayLog, markAttendance } from '../../features/attendance/attendanceService'
@@ -21,8 +21,15 @@ function AdminAttendance() {
   const [checking, setChecking] = useState(false)
   const [selectedQrActivityId, setSelectedQrActivityId] = useState<string | null>(null)
 
+  const init = useCallback(async () => {
+    const [acts, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
+    setActivities(acts)
+    setLog(logData)
+    setInitialLoading(false)
+  }, [])
+
   useEffect(() => {
-    init()
+    void Promise.resolve().then(init)
 
     const channel = supabase
       .channel('attendance-log-changes')
@@ -39,14 +46,7 @@ function AdminAttendance() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
-
-  async function init() {
-    const [acts, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
-    setActivities(acts)
-    setLog(logData)
-    setInitialLoading(false)
-  }
+  }, [init])
 
   async function handleMark() {
      if (checking || !selectedActivity || !refInput.trim()) return // Blocks empty clicks

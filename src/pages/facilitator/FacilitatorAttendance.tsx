@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { QrCode, RefreshCw, CheckCircle2, Download, ClipboardList } from 'lucide-react'
 import { useMyActivityIds } from '../../features/facilitators/useMyActivityIds'
@@ -20,9 +20,15 @@ function FacilitatorAttendance() {
   const [scanResult, setScanResult] = useState<MarkAttendanceResult | null>(null)
   const [checking, setChecking] = useState(false)
 
- useEffect(() => {
-    if (!idsLoading) init()
-  }, [idsLoading, activityIds])
+  const init = useCallback(async () => {
+    const [allActs, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
+    setActivities(allActs.filter((a) => activityIds.includes(a.id)))
+    setLog(logData.filter((row) => activityIds.includes(row.activityId)))
+  }, [activityIds])
+
+  useEffect(() => {
+    if (!idsLoading) void Promise.resolve().then(init)
+  }, [idsLoading, init])
 
   useEffect(() => {
     const channel = supabase
@@ -37,12 +43,6 @@ function FacilitatorAttendance() {
       supabase.removeChannel(channel)
     }
   }, [])
-
-  async function init() {
-    const [allActs, logData] = await Promise.all([fetchActivities(), loadTodayLog()])
-    setActivities(allActs.filter((a) => activityIds.includes(a.id)))
-    setLog(logData.filter((row) => activityIds.includes(row.activityId)))
-  }
 
   async function handleMark() {
     if (checking) return

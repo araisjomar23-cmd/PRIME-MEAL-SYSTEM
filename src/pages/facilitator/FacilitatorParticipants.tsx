@@ -5,7 +5,7 @@ import type { Registration } from '../../types/registration'
 import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 const PILL_STYLES: Record<string, string> = {
   registered: 'bg-green-100 text-green-700',
@@ -20,32 +20,27 @@ function FacilitatorParticipants() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    if (!idsLoading) load()
-  }, [idsLoading, activityIds])
+  const load = useCallback(async () => {
+    setLoading(true)
+    const data = await fetchParticipants()
+    setAll(data.filter((p) => activityIds.includes(p.activityId)))
+    setLoading(false)
+  }, [activityIds])
 
-  const loadRef = useRef(load)
   useEffect(() => {
-    loadRef.current = load
-  })
+    if (!idsLoading) void Promise.resolve().then(load)
+  }, [idsLoading, load])
 
   useEffect(() => {
     const channel = supabase
       .channel(`facilitator-participants-live-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => loadRef.current())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => void load())
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
-
-  async function load() {
-    setLoading(true)
-    const data = await fetchParticipants()
-    setAll(data.filter((p) => activityIds.includes(p.activityId)))
-    setLoading(false)
-  }
+  }, [load])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()

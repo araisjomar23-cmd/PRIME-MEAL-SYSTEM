@@ -1,5 +1,32 @@
 import { supabase } from '../../lib/supabase'
 
+interface RegistrationCountRow {
+  activity_id: string
+  status: string
+}
+
+interface PublicActivityRow {
+  id: string
+  program_id: string
+  title: string | null
+  color_bg: string | null
+  tags: string[] | null
+  status: string | null
+  slots: number | null
+  start_date: string
+  end_date: string
+  start_time: string | null
+  end_time: string | null
+  venue: string | null
+  preview_desc: string | null
+  full_desc: string | null
+  outcomes: string[] | null
+  schedule: string[] | null
+  bring: string[] | null
+  note: string | null
+  programs: { id: string; name: string | null }[] | { id: string; name: string | null } | null
+}
+
 export interface PublicActivity {
   id: string
   programId: string
@@ -65,32 +92,37 @@ export async function fetchPublicActivities(): Promise<PublicActivity[]> {
   const { data: regRows } = await supabase.from('registrations').select('activity_id, status')
 
   const regMap: Record<string, number> = {}
-  ;(regRows || []).forEach((r: any) => {
+  ;(regRows || []).forEach((r: RegistrationCountRow) => {
     if (r.status !== 'inactive') regMap[r.activity_id] = (regMap[r.activity_id] || 0) + 1
   })
 
-  return (data || []).map((a: any) => ({
-    id: a.id,
-    programId: a.program_id,
-    programName: a.programs?.name || '—',
-    title: a.title || '',
-    colorBg: a.color_bg || '',
-    tags: a.tags || [],
-    status: a.status || 'open',
-    startDate: a.start_date || '',
-    endDate: a.end_date || '',
-    startTime: a.start_time || '',
-    endTime: a.end_time || '',
-    slots: a.slots || 0,
-    taken: regMap[a.id] || 0,
-    venue: a.venue || '—',
-    date: formatDateRange(a.start_date, a.end_date),
-    time: formatTimeRange(a.start_time, a.end_time),
-    previewDesc: a.preview_desc || '',
-    fullDesc: a.full_desc || '',
-    outcomes: a.outcomes || [],
-    schedule: a.schedule || [],
-    bring: a.bring || [],
-    note: a.note || '',
-  })).filter((activity) => !['draft', 'closed', 'cancelled', 'canceled'].includes(activity.status.toLowerCase()))
+  return (data || [])
+    .map((a: PublicActivityRow) => {
+      const program = Array.isArray(a.programs) ? a.programs[0] : a.programs
+      return {
+        id: a.id,
+        programId: a.program_id,
+        programName: program?.name || '—',
+        title: a.title || '',
+        colorBg: a.color_bg || '',
+        tags: a.tags || [],
+        status: a.status || 'open',
+        startDate: a.start_date || '',
+        endDate: a.end_date || '',
+        startTime: a.start_time || '',
+        endTime: a.end_time || '',
+        slots: a.slots || 0,
+        taken: regMap[a.id] || 0,
+        venue: a.venue || '—',
+        date: formatDateRange(a.start_date, a.end_date),
+        time: formatTimeRange(a.start_time || undefined, a.end_time || undefined),
+        previewDesc: a.preview_desc || '',
+        fullDesc: a.full_desc || '',
+        outcomes: a.outcomes || [],
+        schedule: a.schedule || [],
+        bring: a.bring || [],
+        note: a.note || '',
+      }
+    })
+    .filter((activity) => !['draft', 'closed', 'cancelled', 'canceled'].includes(activity.status.toLowerCase()))
 }

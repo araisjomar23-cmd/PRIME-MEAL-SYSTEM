@@ -6,7 +6,7 @@ import {
 } from '../../features/facilitators/facilitatorService'
 import type { FacilitatorRow } from '../../features/facilitators/facilitatorService'
 import { Trash2 } from 'lucide-react'
-import { useToast } from '../../components/ToastProvider'
+import { useToast } from '../../components/useToast'
 import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { UserSquare2 } from 'lucide-react'

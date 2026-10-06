@@ -1,5 +1,18 @@
 import { supabase } from '../../lib/supabase'
 
+interface FacilitatorQueryRow {
+  id: string
+  name: string
+  initials: string | null
+  user_uuid: string | null
+  activity_facilitators: { activity_id: string }[] | null
+}
+
+interface AdminUserQueryRow {
+  user_uuid: string
+  email: string | null
+}
+
 export interface FacilitatorRow {
   id: string
   name: string
@@ -24,8 +37,8 @@ export async function fetchFacilitatorsList(): Promise<FacilitatorRow[]> {
     return []
   }
 
-  const uuids = (data || []).map((f: any) => f.user_uuid).filter(Boolean)
-  let emailMap: Record<string, string> = {}
+  const uuids = (data || []).map((f: FacilitatorQueryRow) => f.user_uuid).filter((uuid): uuid is string => Boolean(uuid))
+  const emailMap: Record<string, string> = {}
 
   if (uuids.length) {
     const { data: adminUsers } = await supabase
@@ -33,17 +46,17 @@ export async function fetchFacilitatorsList(): Promise<FacilitatorRow[]> {
       .select('user_uuid, email')
       .in('user_uuid', uuids)
 
-    ;(adminUsers || []).forEach((u: any) => {
-      emailMap[u.user_uuid] = u.email
+    ;(adminUsers || []).forEach((u: AdminUserQueryRow) => {
+      if (u.email) emailMap[u.user_uuid] = u.email
     })
   }
 
-  return (data || []).map((f: any) => ({
+  return (data || []).map((f: FacilitatorQueryRow) => ({
     id: f.id,
     name: f.name,
     initials: f.initials || f.name.charAt(0).toUpperCase(),
     userUuid: f.user_uuid,
-    email: emailMap[f.user_uuid] || '—',
+    email: emailMap[f.user_uuid ?? ''] || '—',
     status: f.user_uuid ? 'Active' : 'No Account',
     activityCount: f.activity_facilitators?.length || 0,
   }))

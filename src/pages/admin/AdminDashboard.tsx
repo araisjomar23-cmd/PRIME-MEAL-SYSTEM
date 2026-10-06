@@ -16,7 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { useDashboardData } from '../../features/dashboard/useDashboardData'
-import { useToast } from '../../components/ToastProvider'
+import { useToast } from '../../components/useToast'
 import { SkeletonStatCard } from '../../components/Skeleton'
 import type { Activity } from '../../types/activity'
 import { usePageTitle } from '../../hooks/usePageTitle'
@@ -241,7 +241,7 @@ function ActivityRegistrationsChart({
               angle={-35}
               textAnchor="end"
               height={80}
-              tickFormatter={(name: any) => (String(name).length > 18 ? `${String(name).slice(0, 18)}…` : String(name))}
+              tickFormatter={(name: unknown) => (String(name).length > 18 ? `${String(name).slice(0, 18)}…` : String(name))}
             />
             <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
             <Tooltip />
@@ -278,14 +278,14 @@ function BudgetOverviewChart({
               angle={-35}
               textAnchor="end"
               height={80}
-              tickFormatter={(name: any) => (String(name).length > 18 ? `${String(name).slice(0, 18)}…` : String(name))}
+              tickFormatter={(name: unknown) => (String(name).length > 18 ? `${String(name).slice(0, 18)}…` : String(name))}
             />
             <YAxis
               allowDecimals={false}
               tick={{ fontSize: 12 }}
-              tickFormatter={(v: any) => `₱${Number(v).toLocaleString()}`}
+              tickFormatter={(v: unknown) => `₱${Number(v).toLocaleString()}`}
             />
-            <Tooltip formatter={(v: any) => `₱${Number(v).toLocaleString()}`} />
+            <Tooltip formatter={(v: unknown) => `₱${Number(v).toLocaleString()}`} />
             <Legend verticalAlign="top" height={28} />
             <Bar dataKey="allocated" name="Allocated" fill="var(--color-info)" fillOpacity={0.35} radius={[4, 4, 0, 0]} />
             <Bar dataKey="spent" name="Spent" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
@@ -311,12 +311,12 @@ function AttendanceTrendChart({ data }: { data: { date: string; registrations: n
             <XAxis
               dataKey="date"
               tick={{ fontSize: 11 }}
-              tickFormatter={(d: any) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              tickFormatter={(d: unknown) => new Date(String(d)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             />
             <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
             <Tooltip
-              labelFormatter={(d: any) =>
-                new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+              labelFormatter={(d: unknown) =>
+                new Date(String(d)).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
               }
             />
             <Legend verticalAlign="top" height={28} />

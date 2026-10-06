@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchEvaluations } from '../../features/evaluations/evaluationService'
 import type { EvaluationRow, EvaluationStats } from '../../features/evaluations/evaluationService'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
@@ -26,8 +26,16 @@ function AdminEvaluations() {
   const [rows, setRows] = useState<EvaluationRow[]>([])
   const [loading, setLoading] = useState(true)
 
+  const load = useCallback(async () => {
+    setLoading(true)
+    const { stats: s, rows: r } = await fetchEvaluations()
+    setStats(s)
+    setRows(r)
+    setLoading(false)
+  }, [])
+
   useEffect(() => {
-  load()
+  void Promise.resolve().then(load)
 
   const channel = supabase
     .channel(`evaluations-live-${Math.random().toString(36).slice(2)}`)
@@ -37,15 +45,7 @@ function AdminEvaluations() {
   return () => {
     supabase.removeChannel(channel)
   }
-}, [])
-
-  async function load() {
-    setLoading(true)
-    const { stats: s, rows: r } = await fetchEvaluations()
-    setStats(s)
-    setRows(r)
-    setLoading(false)
-  }
+}, [load])
 
   return (
     <div className="p-4 md:p-8">

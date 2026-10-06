@@ -1,5 +1,27 @@
 import { supabase } from '../../lib/supabase'
 
+interface AssignedActivityRow {
+  activity_id: string
+}
+
+interface FacilitatorRegistrationRow {
+  status: string
+}
+
+interface FacilitatorActivityRow {
+  id: string
+  title: string
+  date_text: string | null
+  start_date: string | null
+  end_date: string | null
+  start_time: string | null
+  end_time: string | null
+  venue: string | null
+  status: string
+  slots: number
+  programs: { name: string | null }[] | { name: string | null } | null
+}
+
 export async function getMyFacilitatorId(userId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('facilitators')
@@ -17,7 +39,7 @@ export async function getMyAssignedActivityIds(facilitatorId: string): Promise<s
     .select('activity_id')
     .eq('facilitator_id', facilitatorId)
 
-  return (data || []).map((a: any) => a.activity_id)
+  return (data || []).map((a: AssignedActivityRow) => a.activity_id)
 }
 
 export interface FacActivityRow {
@@ -58,22 +80,25 @@ export async function fetchFacilitatorDashboard(activityIds: string[]): Promise<
     .in('activity_id', activityIds)
 
   const totalParticipants = regs?.length || 0
-  const totalAttended = (regs || []).filter((r: any) => r.status === 'attended' || r.status === 'completed').length
-  const upcoming = (acts || []).filter((a: any) => a.status === 'open' || a.status === 'upcoming').length
+  const totalAttended = (regs || []).filter((r: FacilitatorRegistrationRow) => r.status === 'attended' || r.status === 'completed').length
+  const upcoming = (acts || []).filter((a: FacilitatorActivityRow) => a.status === 'open' || a.status === 'upcoming').length
 
-  const activities: FacActivityRow[] = (acts || []).map((a: any) => ({
-    id: a.id,
-    title: a.title,
-    program: a.programs?.name || '—',
-    date: a.date_text || '—',
-    startDate: a.start_date || '',
-    endDate: a.end_date || '',
-    startTime: a.start_time || '',
-    endTime: a.end_time || '',
-    venue: a.venue || '—',
-    slots: a.slots,
-    status: a.status,
-  }))
+  const activities: FacActivityRow[] = (acts || []).map((a: FacilitatorActivityRow) => {
+    const program = Array.isArray(a.programs) ? a.programs[0] : a.programs
+    return {
+      id: a.id,
+      title: a.title,
+      program: program?.name || '—',
+      date: a.date_text || '—',
+      startDate: a.start_date || '',
+      endDate: a.end_date || '',
+      startTime: a.start_time || '',
+      endTime: a.end_time || '',
+      venue: a.venue || '—',
+      slots: a.slots,
+      status: a.status,
+    }
+  })
 
   return { activities, totalParticipants, totalAttended, upcoming }
 }

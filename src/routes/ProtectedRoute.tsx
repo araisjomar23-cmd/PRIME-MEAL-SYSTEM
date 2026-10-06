@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom' // 1. Added useLocation hook
 import type { ReactNode } from 'react'
-import { useAuth } from '../features/auth/AuthContext'
+import { useAuth } from '../features/auth/useAuth'
 
 interface Props {
   children: ReactNode

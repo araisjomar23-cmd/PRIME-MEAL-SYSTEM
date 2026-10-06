@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { updateStatusInDB } from './participantService'
 import type { Registration } from '../../types/registration'
 import { X } from 'lucide-react'
-import { useToast } from '../../components/ToastProvider'
+import { useToast } from '../../components/useToast'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 const PILL_STYLES: Record<string, string> = {

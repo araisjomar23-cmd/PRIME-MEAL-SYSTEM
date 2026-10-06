@@ -1,6 +1,41 @@
 import { supabase } from '../../lib/supabase'
 import { getActivityStatusLabel } from '../activities/activityStatus'
 
+interface ReportActivityRow {
+  id: string
+  title: string
+  status: string
+  slots: number
+  start_date: string
+  end_date: string
+  start_time: string | null
+  end_time: string | null
+  programs: { name: string | null }[] | { name: string | null } | null
+}
+
+interface ReportRegistrationRow {
+  id: string
+  activity_id: string
+  status: string
+  gender_identity: string | null
+  age_bracket: string | null
+  barangay: string | null
+}
+
+interface ReportBudgetRow {
+  activity_id: string
+  amount: number | string
+  entry_type: string
+}
+
+interface ReportEvaluationRow {
+  activity_id: string
+  rating: number | null
+  would_recommend: boolean | null
+}
+
+type ReportDimensionKey = 'gender_identity' | 'age_bracket' | 'barangay'
+
 export interface ReportData {
   period: string
   generatedAt: string
@@ -48,7 +83,7 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
     .gte('start_date', dateFrom)
     .lte('start_date', dateTo)
 
-  const activityIds = (activities || []).map((a: any) => a.id)
+  const activityIds = (activities || []).map((a: ReportActivityRow) => a.id)
 
   const { data: regs } = await supabase
     .from('registration_details')
@@ -65,38 +100,39 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
     .select('activity_id, rating, would_recommend')
     .in('activity_id', activityIds.length ? activityIds : ['none'])
 
-  const regsByActivity: Record<string, typeof regs> = {}
-  ;(regs || []).forEach((r: any) => {
+  const regsByActivity: Record<string, ReportRegistrationRow[]> = {}
+  ;(regs || []).forEach((r: ReportRegistrationRow) => {
     if (!regsByActivity[r.activity_id]) regsByActivity[r.activity_id] = []
-    regsByActivity[r.activity_id]!.push(r)
+    regsByActivity[r.activity_id].push(r)
   })
 
   const budgetByActivity: Record<string, { alloc: number; spent: number }> = {}
-  ;(budgetEntries || []).forEach((b: any) => {
+  ;(budgetEntries || []).forEach((b: ReportBudgetRow) => {
     if (!budgetByActivity[b.activity_id]) budgetByActivity[b.activity_id] = { alloc: 0, spent: 0 }
     if (b.entry_type === 'allocation') budgetByActivity[b.activity_id].alloc += Number(b.amount) || 0
     if (b.entry_type === 'expense') budgetByActivity[b.activity_id].spent += Number(b.amount) || 0
   })
 
-  const evalsByActivity: Record<string, typeof evals> = {}
-  ;(evals || []).forEach((e: any) => {
+  const evalsByActivity: Record<string, ReportEvaluationRow[]> = {}
+  ;(evals || []).forEach((e: ReportEvaluationRow) => {
     if (!evalsByActivity[e.activity_id]) evalsByActivity[e.activity_id] = []
-    evalsByActivity[e.activity_id]!.push(e)
+    evalsByActivity[e.activity_id].push(e)
   })
 
   const totalRegistered = (regs || []).length
-  const totalAttended = (regs || []).filter((r: any) => r.status === 'attended' || r.status === 'completed').length
-  const totalEvalRating = (evals || []).reduce((s: number, e: any) => s + (e.rating || 0), 0)
+  const totalAttended = (regs || []).filter((r: ReportRegistrationRow) => r.status === 'attended' || r.status === 'completed').length
+  const totalEvalRating = (evals || []).reduce((s: number, e: ReportEvaluationRow) => s + (e.rating || 0), 0)
   const avgSatisfaction = evals && evals.length > 0 ? (totalEvalRating / evals.length).toFixed(1) : 'N/A'
 
-  const activityRows = (activities || []).map((a: any) => {
+  const activityRows = (activities || []).map((a: ReportActivityRow) => {
     const activityRegs = regsByActivity[a.id] || []
-    const attended = activityRegs.filter((r: any) => r.status === 'attended' || r.status === 'completed').length
+    const attended = activityRegs.filter((r) => r.status === 'attended' || r.status === 'completed').length
+    const program = Array.isArray(a.programs) ? a.programs[0] : a.programs
     const budget = budgetByActivity[a.id] || { alloc: 0, spent: 0 }
     const utilPct = budget.alloc > 0 ? Math.round((budget.spent / budget.alloc) * 100) : 0
     return {
       title: a.title,
-      program: a.programs?.name || '—',
+      program: program?.name || '—',
       date: new Date(a.start_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }),
       slots: a.slots,
       registered: activityRegs.length,
@@ -112,7 +148,7 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
     }
   })
 
-  function tally(items: any[], key: string): { label: string; count: number }[] {
+  function tally(items: ReportRegistrationRow[], key: ReportDimensionKey): { label: string; count: number }[] {
     const map: Record<string, number> = {}
     items.forEach((item) => {
       const val = item[key] || 'Unspecified'
@@ -132,7 +168,7 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
   const budgetRemaining = budgetAllocated - budgetUtilized
 
   const budgetRows = (activities || [])
-    .map((a: any) => {
+    .map((a: ReportActivityRow) => {
       const b = budgetByActivity[a.id]
       if (!b || b.alloc === 0) return null
       return {
@@ -146,11 +182,11 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
     .filter(Boolean) as ReportData['budgetRows']
 
   const evalRows = (activities || [])
-    .map((a: any) => {
+    .map((a: ReportActivityRow) => {
       const activityEvals = evalsByActivity[a.id] || []
       if (activityEvals.length === 0) return null
-      const avg = activityEvals.reduce((s: number, e: any) => s + (e.rating || 0), 0) / activityEvals.length
-      const recCount = activityEvals.filter((e: any) => e.would_recommend).length
+      const avg = activityEvals.reduce((s, e) => s + (e.rating || 0), 0) / activityEvals.length
+      const recCount = activityEvals.filter((e) => e.would_recommend).length
       return {
         title: a.title,
         responses: activityEvals.length,
