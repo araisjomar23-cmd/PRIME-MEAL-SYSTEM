@@ -5,7 +5,7 @@ export interface Activity {
   title: string
   colorBg: string
   tags: string[]
-  status: 'open' | 'full' | 'upcoming' | 'closed'
+  status: 'open' | 'full' | 'upcoming' | 'closed' | 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled'
   slots: number
   taken: number
   regCount: number

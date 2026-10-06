@@ -225,11 +225,16 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
                 onChange={(e) => setField('status', e.target.value)}
                 className={inputClass('status')}
               >
-                <option value="open">Open</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="full">Full</option>
+                <option value="draft">Draft</option>
+                <option value="open">Published</option>
+                <option value="upcoming">Published (upcoming)</option>
+                <option value="full">Published (full)</option>
                 <option value="closed">Closed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
+              <p className="mt-1 text-xs text-gray-400">
+                Ongoing and Completed are shown automatically based on the activity dates.
+              </p>
             </div>
             <div className="flex-1">
               <label className="text-xs font-semibold text-gray-600">Card Color</label>

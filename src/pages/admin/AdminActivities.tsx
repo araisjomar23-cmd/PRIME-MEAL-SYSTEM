@@ -9,13 +9,8 @@ import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
 import { Pin as PinIcon } from 'lucide-react'
 import ConfirmationDialog from '../../components/ConfirmationDialog'
-
-const STATUS_PILL: Record<string, { cls: string; label: string }> = {
-  open: { cls: 'bg-green-100 text-green-700', label: 'Open' },
-  upcoming: { cls: 'bg-blue-100 text-blue-700', label: 'Upcoming' },
-  full: { cls: 'bg-red-100 text-red-700', label: 'Full' },
-  closed: { cls: 'bg-gray-100 text-gray-600', label: 'Closed' },
-}
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import { getActivityStatusLabel } from '../../features/activities/activityStatus'
 
 function barColor(pct: number) {
   if (pct >= 85) return 'bg-red-500'
@@ -77,7 +72,13 @@ async function load() {
   const filtered = useMemo(() => {
     return all.filter((a) => {
       const mP = !programFilter || String(a.programId) === programFilter
-      const mS = !statusFilter || a.status === statusFilter
+      const mS = !statusFilter || getActivityStatusLabel(
+        a.status,
+        a.startDate,
+        a.endDate,
+        a.startTime,
+        a.endTime
+      ) === statusFilter
       return mP && mS
     })
   }, [all, programFilter, statusFilter])
@@ -90,7 +91,7 @@ async function confirmToggle() {
   if (!activityToToggle) return
   setUpdatingStatus(true)
   const a = activityToToggle
-  const wasClosed = a.status === 'closed'
+  const wasClosed = a.status === 'closed' || a.status === 'cancelled'
   const ok = await toggleActivityStatus(a.id, a.status, a.endDate)
   setUpdatingStatus(false)
   if (ok) {
@@ -144,10 +145,11 @@ async function confirmToggle() {
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 sm:flex-none min-w-[140px]"
         >
           <option value="">All Statuses</option>
-          <option value="open">Open</option>
-          <option value="upcoming">Upcoming</option>
-          <option value="full">Full</option>
-          <option value="closed">Closed</option>
+          <option value="Draft">Draft</option>
+          <option value="Published">Published</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
       </div>
 
@@ -189,7 +191,6 @@ async function confirmToggle() {
                 ) : (
               filtered.map((a) => {
                 const pct = a.slots > 0 ? Math.min(100, Math.round((a.regCount / a.slots) * 100)) : 0
-                const pill = STATUS_PILL[a.status] || { cls: 'bg-gray-100 text-gray-600', label: a.status }
                 const bPct = a.budgetAlloc > 0 ? Math.round((a.budgetSpent / a.budgetAlloc) * 100) : 0
 
                 return (
@@ -216,9 +217,13 @@ async function confirmToggle() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${pill.cls}`}>
-                        {pill.label}
-                      </span>
+                      <ActivityStatusBadge
+                        status={a.status}
+                        startDate={a.startDate}
+                        endDate={a.endDate}
+                        startTime={a.startTime}
+                        endTime={a.endTime}
+                      />
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {a.budgetAlloc > 0 ? (
@@ -242,8 +247,8 @@ async function confirmToggle() {
                       <button
                         onClick={() => handleToggle(a)}
                         className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline">
-                        {a.status === 'closed' ? <RotateCcw size={12} /> : <XCircle size={12} />}
-                        {a.status === 'closed' ? 'Reopen' : 'Close'}
+                        {a.status === 'closed' || a.status === 'cancelled' ? <RotateCcw size={12} /> : <XCircle size={12} />}
+                        {a.status === 'closed' || a.status === 'cancelled' ? 'Reopen' : 'Close'}
                       </button>
                     </div>
                   </td>
@@ -275,7 +280,6 @@ async function confirmToggle() {
           <div className="space-y-3">
             {filtered.map((a) => {
               const pct = a.slots > 0 ? Math.min(100, Math.round((a.regCount / a.slots) * 100)) : 0
-              const pill = STATUS_PILL[a.status] || { cls: 'bg-gray-100 text-gray-600', label: a.status }
               const bPct = a.budgetAlloc > 0 ? Math.round((a.budgetSpent / a.budgetAlloc) * 100) : 0
 
               return (
@@ -285,9 +289,14 @@ async function confirmToggle() {
                       <div className="font-semibold text-gray-900">{a.title}</div>
                       <div className="text-xs text-gray-400">{a.venue}</div>
                     </div>
-                    <span className={`shrink-0 px-2 py-1 rounded-full text-xs font-medium ${pill.cls}`}>
-                      {pill.label}
-                    </span>
+                    <ActivityStatusBadge
+                      status={a.status}
+                      startDate={a.startDate}
+                      endDate={a.endDate}
+                      startTime={a.startTime}
+                      endTime={a.endTime}
+                      className="shrink-0"
+                    />
                   </div>
 
                   <div className="text-xs text-gray-600 mb-3">
@@ -329,8 +338,8 @@ async function confirmToggle() {
                       onClick={() => handleToggle(a)}
                       className="flex-1 inline-flex items-center justify-center gap-1 text-primary text-xs font-semibold border border-primary/20 rounded-lg py-2"
                     >
-                      {a.status === 'closed' ? <RotateCcw size={12} /> : <XCircle size={12} />}
-                      {a.status === 'closed' ? 'Reopen' : 'Close'}
+                      {a.status === 'closed' || a.status === 'cancelled' ? <RotateCcw size={12} /> : <XCircle size={12} />}
+                      {a.status === 'closed' || a.status === 'cancelled' ? 'Reopen' : 'Close'}
                     </button>
                   </div>
                 </div>
@@ -349,13 +358,13 @@ async function confirmToggle() {
       )}
       {activityToToggle && (
         <ConfirmationDialog
-          title={activityToToggle.status === 'closed' ? 'Reopen activity?' : 'Close activity?'}
+          title={activityToToggle.status === 'closed' || activityToToggle.status === 'cancelled' ? 'Reopen activity?' : 'Close activity?'}
           message={
-            activityToToggle.status === 'closed'
+            activityToToggle.status === 'closed' || activityToToggle.status === 'cancelled'
               ? `Reopening "${activityToToggle.title}" will make it available for registration again.`
               : `Closing "${activityToToggle.title}" will stop new registrations.`
           }
-          confirmLabel={activityToToggle.status === 'closed' ? 'Reopen activity' : 'Close activity'}
+          confirmLabel={activityToToggle.status === 'closed' || activityToToggle.status === 'cancelled' ? 'Reopen activity' : 'Close activity'}
           pending={updatingStatus}
           onConfirm={confirmToggle}
           onCancel={() => {

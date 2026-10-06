@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchActivityById, registerParticipant } from '../../features/public/registrationService'
 import type { PublicActivity } from '../../features/public/publicActivityService'
@@ -6,6 +6,8 @@ import { CheckCircle2 } from 'lucide-react'
 import { ArrowLeft, MapPin, Calendar } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../features/auth/AuthContext'
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import { getActivityStatusLabel } from '../../features/activities/activityStatus'
 
 function ActivityDetail() {
   const { id } = useParams()
@@ -38,7 +40,10 @@ function ActivityDetail() {
 
   async function load(activityId: string) {
     setLoading(true)
-    const data = await fetchActivityById(activityId)
+    const numericActivityId = Number(activityId)
+    const data = Number.isFinite(numericActivityId)
+      ? await fetchActivityById(numericActivityId)
+      : null
     setActivity(data)
     setLoading(false)
   }
@@ -55,7 +60,7 @@ function ActivityDetail() {
       }
 
       setSubmitting(true)
-    const result = await registerParticipant(activity.id)
+    const result = await registerParticipant(Number(activity.id))
     setSubmitting(false)
 
       if (!result.ok) {
@@ -69,7 +74,7 @@ function ActivityDetail() {
 
       setRefCode(result.refCode || '')
 
-    const updated = await fetchActivityById(activity.id)
+    const updated = await fetchActivityById(Number(activity.id))
       if (updated) {
         setActivity(updated)
       }
@@ -116,7 +121,18 @@ function ActivityDetail() {
   }
 
   const open = Math.max(0, activity.slots - activity.taken)
-  const soldOut = open <= 0 || activity.status === 'full' || activity.status === 'closed'
+  const activityStatus = getActivityStatusLabel(
+    activity.status,
+    activity.startDate,
+    activity.endDate,
+    activity.startTime,
+    activity.endTime
+  )
+  const soldOut =
+    open <= 0 ||
+    activity.status === 'full' ||
+    activity.status === 'closed' ||
+    ['Draft', 'Cancelled', 'Completed'].includes(activityStatus)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -132,6 +148,14 @@ function ActivityDetail() {
           <div className="p-6">
             <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-1.5">{activity.programName}</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{activity.title}</h1>
+            <ActivityStatusBadge
+              status={activity.status}
+              startDate={activity.startDate}
+              endDate={activity.endDate}
+              startTime={activity.startTime}
+              endTime={activity.endTime}
+              className="mb-4"
+            />
             <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
               <span className="inline-flex items-center gap-1.5"><Calendar size={14} /> {activity.date}</span>
               <span className="inline-flex items-center gap-1.5"><MapPin size={14} /> {activity.venue}</span>
@@ -156,7 +180,13 @@ function ActivityDetail() {
               disabled={soldOut || submitting}
               className="w-full btn-primary py-2.5 disabled:opacity-40"
               >
-              {activity.status === 'closed'
+              {activityStatus === 'Draft'
+                ? 'Draft Activity'
+                : activityStatus === 'Cancelled'
+                ? 'Activity Cancelled'
+                : activityStatus === 'Completed'
+                ? 'Activity Completed'
+                : activity.status === 'closed'
                 ? 'Registration Closed'
                 : soldOut
                 ? 'Activity Full'

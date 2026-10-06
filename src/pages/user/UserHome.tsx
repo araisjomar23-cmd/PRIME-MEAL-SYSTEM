@@ -13,6 +13,7 @@ import ActivityModal from '../../features/public/ActivityModal'
 import { autoCloseExpiredActivities } from '../../features/activities/activityService'
 import { supabase } from '../../lib/supabase'
 import logo from '../../assets/CYDO LOGO.jpg'
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 
 const PROGRAMS = [
   { name: 'Health', icon: HeartPulse },
@@ -230,15 +231,14 @@ function UserHome() {
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 55%, rgba(0,0,0,.06))' }} />
                     <Sparkles size={44} className="relative z-10 text-white/90 drop-shadow-lg" />
 
-                    <span
-                      className="absolute top-2.5 right-2.5 z-20 px-2.5 py-1 rounded-full text-[10px] font-bold backdrop-blur-sm"
-                      style={{
-                        background: a.status === 'open' ? 'rgba(212,240,224,.92)' : a.status === 'upcoming' ? 'rgba(220,238,255,.92)' : 'rgba(253,232,200,.92)',
-                        color: a.status === 'open' ? '#1a5c3a' : a.status === 'upcoming' ? '#1a4d7a' : '#9a5f0a',
-                      }}
-                    >
-                      {a.status}
-                    </span>
+                    <ActivityStatusBadge
+                      status={a.status}
+                      startDate={a.startDate}
+                      endDate={a.endDate}
+                      startTime={a.startTime}
+                      endTime={a.endTime}
+                      className="absolute top-2.5 right-2.5 z-20 text-[10px] backdrop-blur-sm"
+                    />
 
                     {isUrgent && (
                       <span className="urgency-badge absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white bg-red-600">

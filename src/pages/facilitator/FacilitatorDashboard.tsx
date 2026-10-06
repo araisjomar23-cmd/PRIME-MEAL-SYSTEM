@@ -6,13 +6,7 @@ import { SkeletonStatCard, SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-
-const STATUS_PILL: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  upcoming: 'bg-blue-100 text-blue-700',
-  full: 'bg-red-100 text-red-700',
-  closed: 'bg-gray-100 text-gray-600',
-}
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 
 function FacilitatorDashboard() {
   const { activityIds, loading: idsLoading } = useMyActivityIds()
@@ -95,9 +89,13 @@ function FacilitatorDashboard() {
                   <td className="px-4 py-3 text-xs">{a.venue}</td>
                   <td className="px-4 py-3">{a.slots}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_PILL[a.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {a.status}
-                    </span>
+                    <ActivityStatusBadge
+                      status={a.status}
+                      startDate={a.startDate}
+                      endDate={a.endDate}
+                      startTime={a.startTime}
+                      endTime={a.endTime}
+                    />
                   </td>
                 </tr>
               ))

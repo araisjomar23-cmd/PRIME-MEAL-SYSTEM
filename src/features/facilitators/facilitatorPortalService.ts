@@ -25,6 +25,10 @@ export interface FacActivityRow {
   title: string
   program: string
   date: string
+  startDate: string
+  endDate: string
+  startTime: string
+  endTime: string
   venue: string
   slots: number
   status: string
@@ -44,7 +48,7 @@ export async function fetchFacilitatorDashboard(activityIds: string[]): Promise<
 
   const { data: acts } = await supabase
     .from('activities')
-    .select('id, title, date_text, venue, status, slots, programs(name)')
+    .select('id, title, date_text, start_date, end_date, start_time, end_time, venue, status, slots, programs(name)')
     .in('id', activityIds)
     .order('start_date', { ascending: true })
 
@@ -62,6 +66,10 @@ export async function fetchFacilitatorDashboard(activityIds: string[]): Promise<
     title: a.title,
     program: a.programs?.name || '—',
     date: a.date_text || '—',
+    startDate: a.start_date || '',
+    endDate: a.end_date || '',
+    startTime: a.start_time || '',
+    endTime: a.end_time || '',
     venue: a.venue || '—',
     slots: a.slots,
     status: a.status,

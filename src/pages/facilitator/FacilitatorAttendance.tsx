@@ -8,13 +8,7 @@ import type { Activity } from '../../types/activity'
 import type { AttendanceLogRow, MarkAttendanceResult } from '../../features/attendance/attendanceService'
 import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
-
-const PILL_STYLES: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  upcoming: 'bg-blue-100 text-blue-700',
-  full: 'bg-red-100 text-red-700',
-  closed: 'bg-gray-100 text-gray-600',
-}
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 
 function FacilitatorAttendance() {
   const { activityIds, loading: idsLoading } = useMyActivityIds()
@@ -79,7 +73,9 @@ function FacilitatorAttendance() {
     a.click()
   }
 
-  const scannableActivities = activities.filter((a) => a.status !== 'closed')
+  const scannableActivities = activities.filter(
+    (a) => !['closed', 'draft', 'cancelled', 'canceled', 'completed'].includes(a.status)
+  )
 
   return (
     <div className="p-8">
@@ -184,9 +180,14 @@ function FacilitatorAttendance() {
               <div className="p-2 bg-white">
                 <QRCodeCanvas id={`fac-qr-canvas-${a.id}`} value={`${window.location.origin}/?activity=${a.id}`} size={130} fgColor="#1a5c3a" bgColor="#ffffff" />
               </div>
-              <span className={`px-2 py-1 rounded-full text-[10px] font-medium mt-2 mb-3 ${PILL_STYLES[a.status] || 'bg-gray-100 text-gray-600'}`}>
-                {a.status}
-              </span>
+              <ActivityStatusBadge
+                status={a.status}
+                startDate={a.startDate}
+                endDate={a.endDate}
+                startTime={a.startTime}
+                endTime={a.endTime}
+                className="mt-2 mb-3 text-[10px]"
+              />
               <button onClick={() => downloadQR(a.id, a.title)} className="text-primary text-xs font-semibold hover:underline">
                 <Download size={14} className="inline mr-1" /> Download PNG
               </button>

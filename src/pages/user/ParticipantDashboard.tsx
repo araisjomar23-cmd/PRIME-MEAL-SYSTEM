@@ -7,6 +7,8 @@ import { SkeletonCard } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { MapPin, Calendar, Users, CalendarX } from 'lucide-react'
 import { usePageTitle } from '../../hooks/usePageTitle'
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import { getActivityStatusLabel } from '../../features/activities/activityStatus'
 
 export default function ParticipantDashboard() {
   usePageTitle('PRIME')
@@ -48,7 +50,14 @@ export default function ParticipantDashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activities.map((activity) => {
             const open = Math.max(0, activity.slots - activity.taken)
-            const full = open <= 0
+            const statusLabel = getActivityStatusLabel(
+              activity.status,
+              activity.startDate,
+              activity.endDate,
+              activity.startTime,
+              activity.endTime
+            )
+            const unavailable = open <= 0 || ['Draft', 'Cancelled', 'Completed'].includes(statusLabel)
             return (
               <div key={activity.id} className="panel overflow-hidden flex flex-col">
                 <div
@@ -69,6 +78,14 @@ export default function ParticipantDashboard() {
                     {activity.programName}
                   </div>
                   <h2 className="text-lg font-bold text-gray-900 mb-2">{activity.title}</h2>
+                  <ActivityStatusBadge
+                    status={activity.status}
+                    startDate={activity.startDate}
+                    endDate={activity.endDate}
+                    startTime={activity.startTime}
+                    endTime={activity.endTime}
+                    className="mb-3 self-start"
+                  />
 
                   <div className="space-y-1.5 text-sm text-gray-500 mb-4">
                     <p className="flex items-center gap-1.5"><MapPin size={14} /> {activity.venue}</p>
@@ -78,10 +95,18 @@ export default function ParticipantDashboard() {
 
                   <button
                     onClick={() => navigate(`/activities/${activity.id}`)}
-                    disabled={full}
+                    disabled={unavailable}
                     className="mt-auto w-full btn-primary py-2.5 disabled:opacity-40"
                   >
-                    {full ? 'Activity Full' : 'View & Register'}
+                    {statusLabel === 'Draft'
+                      ? 'Draft Activity'
+                      : statusLabel === 'Cancelled'
+                      ? 'Activity Cancelled'
+                      : statusLabel === 'Completed'
+                      ? 'Activity Completed'
+                      : open <= 0
+                      ? 'Activity Full'
+                      : 'View & Register'}
                   </button>
                 </div>
               </div>

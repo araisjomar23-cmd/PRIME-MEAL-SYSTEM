@@ -7,7 +7,10 @@ function formatDateRange(startDate?: string, endDate?: string): string {
   if (!startDate) return '—'
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-  return startDate === endDate ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`
+  const resolvedEndDate = endDate || startDate
+  return startDate === resolvedEndDate
+    ? fmt(startDate)
+    : `${fmt(startDate)} – ${fmt(resolvedEndDate)}`
 }
 
 export async function autoCloseExpiredActivities(): Promise<void> {
@@ -112,7 +115,7 @@ export async function toggleActivityStatus(
   currentStatus: string,
   currentEndDate?: string
 ): Promise<boolean> {
-  const isReopening = currentStatus === 'closed'
+  const isReopening = currentStatus === 'closed' || currentStatus === 'cancelled'
   const newStatus = isReopening ? 'open' : 'closed'
 
   const now = new Date()

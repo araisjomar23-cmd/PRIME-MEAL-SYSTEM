@@ -51,19 +51,6 @@ export interface DashboardData {
   recentEvaluations: EvaluationRow[]
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  attended: 'Attended',
-  completed: 'Completed',
-  registered: 'Registered',
-  pending: 'Pending',
-  cancelled: 'Cancelled',
-  inactive: 'Inactive',
-}
-
-function labelForStatus(status: string): string {
-  return STATUS_LABELS[status] ?? status.charAt(0).toUpperCase() + status.slice(1)
-}
-
 const TREND_DAYS = 14
 
 function buildAttendanceTrend(all: Registration[]): AttendanceTrendDatum[] {

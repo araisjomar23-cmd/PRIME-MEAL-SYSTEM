@@ -124,6 +124,8 @@ export default function ParticipantSignup() {
 
       if (data.session) {
         navigate('/participant/complete-profile')
+      } else {
+        setCheckEmail(true)
     }
   }
 
@@ -141,6 +143,12 @@ export default function ParticipantSignup() {
         <p className="text-center text-gray-500 text-sm mb-6">
           Sign up to register for activities and track your evaluations.
         </p>
+
+        {checkEmail && (
+          <p role="status" className="mb-4 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-700">
+            Your account was created. Check your email for a confirmation link before signing in.
+          </p>
+        )}
 
         <form className="space-y-4" onSubmit={handleSignup} noValidate>
           <Field

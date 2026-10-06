@@ -4,6 +4,8 @@ import { X, MapPin, Calendar, Clock, CheckCircle2 } from 'lucide-react'
 import { fetchActivityById, registerParticipant } from './registrationService'
 import type { PublicActivity } from './publicActivityService'
 import { supabase } from '../../lib/supabase'
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
+import { getActivityStatusLabel } from '../activities/activityStatus'
 
 interface Props {
   activityId: string
@@ -28,7 +30,8 @@ function ActivityModal({ activityId, onClose }: Props) {
 
   async function load(id: string) {
     setLoading(true)
-    const data = await fetchActivityById(id)
+    const activityId = Number(id)
+    const data = Number.isFinite(activityId) ? await fetchActivityById(activityId) : null
     setActivity(data)
     setLoading(false)
   }
@@ -45,7 +48,7 @@ function ActivityModal({ activityId, onClose }: Props) {
       }
 
       setSubmitting(true)
-    const result = await registerParticipant(activity.id)
+    const result = await registerParticipant(Number(activity.id))
     setSubmitting(false)
 
       if (!result.ok) {
@@ -61,7 +64,15 @@ function ActivityModal({ activityId, onClose }: Props) {
   }
 
   const open = activity ? Math.max(0, activity.slots - activity.taken) : 0
-  const soldOut = activity? open <= 0 || activity.status === 'full' || activity.status === 'closed': true
+  const activityStatus = activity
+    ? getActivityStatusLabel(activity.status, activity.startDate, activity.endDate, activity.startTime, activity.endTime)
+    : ''
+  const soldOut =
+    !activity ||
+    open <= 0 ||
+    activity.status === 'full' ||
+    activity.status === 'closed' ||
+    ['Draft', 'Cancelled', 'Completed'].includes(activityStatus)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -106,6 +117,14 @@ function ActivityModal({ activityId, onClose }: Props) {
             <div className="p-6">
               <div className="text-[11px] font-bold uppercase tracking-wide text-primary mb-1.5">{activity.programName}</div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{activity.title}</h1>
+              <ActivityStatusBadge
+                status={activity.status}
+                startDate={activity.startDate}
+                endDate={activity.endDate}
+                startTime={activity.startTime}
+                endTime={activity.endTime}
+                className="mb-4"
+              />
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mb-4">
                 <span className="inline-flex items-center gap-1.5"><Calendar size={14} /> {activity.date}</span>
                 {activity.time && <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {activity.time}</span>}
@@ -129,7 +148,13 @@ function ActivityModal({ activityId, onClose }: Props) {
                 disabled={soldOut || submitting}
                 className="w-full btn-primary py-2.5 disabled:opacity-40"
               >
-                {activity.status === 'closed'
+                {activityStatus === 'Draft'
+                  ? 'Draft Activity'
+                  : activityStatus === 'Cancelled'
+                  ? 'Activity Cancelled'
+                  : activityStatus === 'Completed'
+                  ? 'Activity Completed'
+                  : activity.status === 'closed'
                   ? 'Registration Closed'
                   : soldOut
                   ? 'Activity Full'

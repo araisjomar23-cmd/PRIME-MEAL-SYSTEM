@@ -8,6 +8,10 @@ export interface PublicActivity {
   colorBg: string
   tags: string[]
   status: string
+  startDate: string
+  endDate: string
+  startTime: string
+  endTime: string
   slots: number
   taken: number
   venue: string
@@ -73,6 +77,10 @@ export async function fetchPublicActivities(): Promise<PublicActivity[]> {
     colorBg: a.color_bg || '',
     tags: a.tags || [],
     status: a.status || 'open',
+    startDate: a.start_date || '',
+    endDate: a.end_date || '',
+    startTime: a.start_time || '',
+    endTime: a.end_time || '',
     slots: a.slots || 0,
     taken: regMap[a.id] || 0,
     venue: a.venue || '—',
@@ -84,5 +92,5 @@ export async function fetchPublicActivities(): Promise<PublicActivity[]> {
     schedule: a.schedule || [],
     bring: a.bring || [],
     note: a.note || '',
-  }))
+  })).filter((activity) => !['draft', 'closed', 'cancelled', 'canceled'].includes(activity.status.toLowerCase()))
 }

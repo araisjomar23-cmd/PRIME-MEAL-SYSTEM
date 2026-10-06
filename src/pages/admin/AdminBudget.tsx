@@ -6,6 +6,7 @@ import { useToast } from '../../components/ToastProvider'
 import { SkeletonStatCard, SkeletonCard } from '../../components/Skeleton'
 import type { Activity } from '../../types/activity'
 import type { BudgetEntry } from '../../features/budget/budgetService'
+import BudgetWarning from '../../components/BudgetWarning'
 
 const EXPENSE_CATEGORIES = [
   'Food & Catering',
@@ -75,6 +76,12 @@ function AdminBudget() {
         <StatCard barColor="var(--color-accent)" label="Utilization" value={`${data.utilRate}%`} />
       </div>
 
+      <BudgetWarning
+        allocated={data.totalAlloc}
+        spent={data.totalSpent}
+        className="mb-6"
+      />
+
       {data.activities.length === 0 ? (
         <div className="text-center text-gray-400 py-12">No activities with budget data yet.</div>
       ) : selectedActivity ? (
@@ -130,12 +137,16 @@ function ActivityBudgetSummaryCard({
   const pct = alloc > 0 ? Math.min(100, Math.round((spent / alloc) * 100)) : 0
 
   return (
-    <button
-      onClick={onClick}
-      className="panel p-4 text-left hover:shadow-md hover:border-primary/30 transition-all"
-    >
-      <div className="text-base font-bold text-gray-900 truncate">{a.title}</div>
-      <div className="text-xs text-gray-400 mb-3 truncate">{a.programName}</div>
+    <div className="panel p-4 hover:shadow-md hover:border-primary/30 transition-all">
+      <button type="button" onClick={onClick} className="mb-3 w-full text-left">
+        <div className="text-base font-bold text-gray-900 truncate">{a.title}</div>
+        <div className="text-xs text-gray-400 truncate">{a.programName}</div>
+      </button>
+      <BudgetWarning
+        allocated={alloc}
+        spent={spent}
+        className="mb-3"
+      />
 
       {alloc === 0 ? (
         <div className="text-sm text-gray-400">No budget allocated yet</div>
@@ -165,7 +176,7 @@ function ActivityBudgetSummaryCard({
           </div>
         </>
       )}
-    </button>
+    </div>
   )
 }
 
@@ -228,6 +239,11 @@ function ActivityBudgetDetail({
       <div className="panel p-4 md:p-5">
         <div className="text-base font-bold text-gray-900">{a.title}</div>
         <div className="text-xs text-gray-400 mb-3">{a.programName}</div>
+        <BudgetWarning
+          allocated={alloc}
+          spent={spent}
+          className="mb-3"
+        />
         <div className="text-sm text-gray-400 mb-3">No budget allocated yet</div>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -279,6 +295,12 @@ function ActivityBudgetDetail({
       <div className="w-full bg-gray-100 rounded-full h-2 mb-5">
         <div className={`h-2 rounded-full ${barColor(pct)}`} style={{ width: `${pct}%` }} />
       </div>
+
+      <BudgetWarning
+        allocated={alloc}
+        spent={spent}
+        className="mb-5"
+      />
 
       <div className="mb-4">
         <div className="text-[11px] font-bold uppercase text-gray-400 tracking-wide mb-2">

@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase'
+import { getActivityStatusLabel } from '../activities/activityStatus'
 
 export interface ReportData {
   period: string
@@ -43,7 +44,7 @@ export interface ReportData {
 export async function generateReport(dateFrom: string, dateTo: string): Promise<ReportData> {
   const { data: activities } = await supabase
     .from('activities')
-    .select('id, title, status, slots, start_date, programs(name)')
+    .select('id, title, status, slots, start_date, end_date, start_time, end_time, programs(name)')
     .gte('start_date', dateFrom)
     .lte('start_date', dateTo)
 
@@ -100,7 +101,13 @@ export async function generateReport(dateFrom: string, dateTo: string): Promise<
       slots: a.slots,
       registered: activityRegs.length,
       attended,
-      status: a.status,
+      status: getActivityStatusLabel(
+        a.status,
+        a.start_date,
+        a.end_date,
+        a.start_time,
+        a.end_time
+      ),
       budgetUtil: budget.alloc > 0 ? `${utilPct}%` : '—',
     }
   })

@@ -8,13 +8,7 @@ import type { MarkAttendanceResult } from '../../features/attendance/attendanceS
 import { ClipboardList, Download, ArrowLeft,QrCode, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { SkeletonCard } from '../../components/Skeleton'
 import { supabase } from '../../lib/supabase'
-
-const PILL_STYLES: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  upcoming: 'bg-blue-100 text-blue-700',
-  full: 'bg-red-100 text-red-700',
-  closed: 'bg-gray-100 text-gray-600',
-}
+import ActivityStatusBadge from '../../components/ActivityStatusBadge'
 
 function AdminAttendance() {
   const [activities, setActivities] = useState<Activity[]>([])
@@ -81,7 +75,9 @@ function AdminAttendance() {
     a.click()
   }
 
-  const scannableActivities = activities.filter((a) => a.status !== 'closed')
+  const scannableActivities = activities.filter(
+    (a) => !['closed', 'draft', 'cancelled', 'canceled', 'completed'].includes(a.status)
+  )
   const selectedQrActivity = selectedQrActivityId
     ? activities.find((a) => a.id === selectedQrActivityId) || null
     : null
@@ -245,13 +241,14 @@ function AdminAttendance() {
               <div className="text-[10px] text-gray-400">
                 ACT-{String(a.id).padStart(4, '0')}
               </div>
-              <span
-                className={`px-2 py-1 rounded-full text-[10px] font-medium mt-2 ${
-                  PILL_STYLES[a.status] || 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {a.status}
-              </span>
+              <ActivityStatusBadge
+                status={a.status}
+                startDate={a.startDate}
+                endDate={a.endDate}
+                startTime={a.startTime}
+                endTime={a.endTime}
+                className="mt-2 text-[10px]"
+              />
             </button>
           ))}
         </div>
@@ -285,13 +282,14 @@ function AdminAttendance() {
             <div className="text-xs text-gray-400 mt-4">
               ACT-{String(selectedQrActivity.id).padStart(4, '0')}
             </div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium mt-2 mb-6 ${
-                PILL_STYLES[selectedQrActivity.status] || 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {selectedQrActivity.status}
-            </span>
+            <ActivityStatusBadge
+              status={selectedQrActivity.status}
+              startDate={selectedQrActivity.startDate}
+              endDate={selectedQrActivity.endDate}
+              startTime={selectedQrActivity.startTime}
+              endTime={selectedQrActivity.endTime}
+              className="mt-2 mb-6"
+            />
 
             <button
               onClick={() => downloadQR(selectedQrActivity.id, selectedQrActivity.title)}
