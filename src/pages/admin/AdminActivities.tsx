@@ -8,6 +8,7 @@ import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { supabase } from '../../lib/supabase'
 import { Pin as PinIcon } from 'lucide-react'
+import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 const STATUS_PILL: Record<string, { cls: string; label: string }> = {
   open: { cls: 'bg-green-100 text-green-700', label: 'Open' },
@@ -41,6 +42,8 @@ function AdminActivities() {
   const [statusFilter, setStatusFilter] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [activityToToggle, setActivityToToggle] = useState<Activity | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
  useEffect(() => {
   load()
@@ -79,11 +82,20 @@ async function load() {
     })
   }, [all, programFilter, statusFilter])
 
-async function handleToggle(a: Activity) {
+function handleToggle(a: Activity) {
+  setActivityToToggle(a)
+}
+
+async function confirmToggle() {
+  if (!activityToToggle) return
+  setUpdatingStatus(true)
+  const a = activityToToggle
   const wasClosed = a.status === 'closed'
   const ok = await toggleActivityStatus(a.id, a.status, a.endDate)
+  setUpdatingStatus(false)
   if (ok) {
     showToast(wasClosed ? 'Activity reopened.' : 'Activity closed.', 'success')
+    setActivityToToggle(null)
     load()
   } else {
     showToast('Failed to update activity status.', 'error')
@@ -333,6 +345,22 @@ async function handleToggle(a: Activity) {
           editingActivity={editingActivity}
           onClose={() => setFormOpen(false)}
           onSaved={handleSaved}
+        />
+      )}
+      {activityToToggle && (
+        <ConfirmationDialog
+          title={activityToToggle.status === 'closed' ? 'Reopen activity?' : 'Close activity?'}
+          message={
+            activityToToggle.status === 'closed'
+              ? `Reopening "${activityToToggle.title}" will make it available for registration again.`
+              : `Closing "${activityToToggle.title}" will stop new registrations.`
+          }
+          confirmLabel={activityToToggle.status === 'closed' ? 'Reopen activity' : 'Close activity'}
+          pending={updatingStatus}
+          onConfirm={confirmToggle}
+          onCancel={() => {
+            if (!updatingStatus) setActivityToToggle(null)
+          }}
         />
       )}
     </div>

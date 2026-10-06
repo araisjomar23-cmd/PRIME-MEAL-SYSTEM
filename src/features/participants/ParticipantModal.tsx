@@ -3,6 +3,7 @@ import { updateStatusInDB } from './participantService'
 import type { Registration } from '../../types/registration'
 import { X } from 'lucide-react'
 import { useToast } from '../../components/ToastProvider'
+import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 const PILL_STYLES: Record<string, string> = {
   registered: 'bg-green-100 text-green-700',
@@ -32,6 +33,7 @@ interface Props {
 function ParticipantModal({ participant: p, onClose, onStatusChange }: Props) {
   const { showToast } = useToast()
   const [updating, setUpdating] = useState(false)
+  const [requestedStatus, setRequestedStatus] = useState<string | null>(null)
 
   const fields: [string, string][] = [
     ['Full Name', p.name],
@@ -49,17 +51,23 @@ function ParticipantModal({ participant: p, onClose, onStatusChange }: Props) {
     ['Notes', p.notes || '—'],
   ]
 
-  async function handleStatusClick(newStatus: string) {
-  setUpdating(true)
-  const ok = await updateStatusInDB(p.ref, newStatus)
-  setUpdating(false)
-  if (ok) {
-    onStatusChange(p.ref, newStatus)
-    showToast(`Status updated to "${newStatus}".`, 'success')
-  } else {
-    showToast('Failed to update status. Please try again.', 'error')
+  function handleStatusClick(newStatus: string) {
+    setRequestedStatus(newStatus)
   }
-}
+
+  async function confirmStatusChange() {
+    if (!requestedStatus) return
+    setUpdating(true)
+    const ok = await updateStatusInDB(p.ref, requestedStatus)
+    setUpdating(false)
+    if (ok) {
+      onStatusChange(p.ref, requestedStatus)
+      showToast(`Status updated to "${requestedStatus}".`, 'success')
+      setRequestedStatus(null)
+    } else {
+      showToast('Failed to update status. Please try again.', 'error')
+    }
+  }
 
   return (
     <div
@@ -120,6 +128,18 @@ function ParticipantModal({ participant: p, onClose, onStatusChange }: Props) {
           </div>
         </div>
       </div>
+      {requestedStatus && (
+        <ConfirmationDialog
+          title="Update participant status?"
+          message={`Change ${p.name}'s status from "${p.status}" to "${requestedStatus}"?`}
+          confirmLabel="Update status"
+          pending={updating}
+          onConfirm={confirmStatusChange}
+          onCancel={() => {
+            if (!updating) setRequestedStatus(null)
+          }}
+        />
+      )}
     </div>
   )
 }

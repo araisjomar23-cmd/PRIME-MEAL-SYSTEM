@@ -8,8 +8,8 @@ import {
 import type { Activity } from '../../types/activity'
 import type { Program } from '../../types/program'
 import type { Facilitator } from '../../types/facilitator'
-import { X } from 'lucide-react'
 import { useToast } from '../../components/ToastProvider'
+import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 interface Props {
   editingActivity: Activity | null
@@ -44,6 +44,7 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
   const [tagged, setTagged] = useState<Facilitator[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
+  const [confirmUpdate, setConfirmUpdate] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -111,6 +112,15 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
     e.preventDefault()
     if (!validate()) return
 
+    if (isEdit) {
+      setConfirmUpdate(true)
+      return
+    }
+
+    await persistActivity()
+  }
+
+  async function persistActivity() {
     setSubmitting(true)
     const result = await saveActivity(
       {
@@ -135,6 +145,7 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
     setSubmitting(false)
 
     if (result.ok) {
+        setConfirmUpdate(false)
         showToast(isEdit ? 'Activity updated successfully.' : 'Activity created successfully.', 'success')
         onSaved()
         onClose()
@@ -405,6 +416,18 @@ function ActivityFormModal({ editingActivity, onClose, onSaved }: Props) {
           </div>
         </form>
       </div>
+      {confirmUpdate && (
+        <ConfirmationDialog
+          title="Save activity changes?"
+          message={`This will update the saved details for "${editingActivity?.title}".`}
+          confirmLabel="Save changes"
+          pending={submitting}
+          onConfirm={persistActivity}
+          onCancel={() => {
+            if (!submitting) setConfirmUpdate(false)
+          }}
+        />
+      )}
     </div>
   )
 }

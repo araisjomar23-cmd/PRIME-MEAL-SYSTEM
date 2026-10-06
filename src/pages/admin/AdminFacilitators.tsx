@@ -5,11 +5,12 @@ import {
   deleteFacilitator,
 } from '../../features/facilitators/facilitatorService'
 import type { FacilitatorRow } from '../../features/facilitators/facilitatorService'
-import { X, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useToast } from '../../components/ToastProvider'
 import { SkeletonTableRows } from '../../components/Skeleton'
 import { EmptyState } from '../../components/EmptyState'
 import { UserSquare2 } from 'lucide-react'
+import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 const emptyForm = { name: '', initials: '', email: '', password: '' }
 
@@ -21,6 +22,8 @@ function AdminFacilitators() {
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<FacilitatorRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     load()
@@ -72,16 +75,19 @@ showToast('Facilitator account created successfully.', 'success')
 load()
   }
 
-  async function handleDelete(id: string) {
-  if (!confirm('Delete this facilitator? This cannot be undone.')) return
-  const ok = await deleteFacilitator(id)
-  if (ok) {
-    setList((prev) => prev.filter((f) => f.id !== id))
-    showToast('Facilitator deleted.', 'success')
-  } else {
-    showToast('Failed to delete facilitator.', 'error')
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const ok = await deleteFacilitator(deleteTarget.id)
+    setDeleting(false)
+    if (ok) {
+      setList((prev) => prev.filter((f) => f.id !== deleteTarget.id))
+      showToast('Facilitator deleted.', 'success')
+      setDeleteTarget(null)
+    } else {
+      showToast('Failed to delete facilitator.', 'error')
+    }
   }
-}
 
   return (
     <div className="p-4 md:p-8">
@@ -150,7 +156,7 @@ load()
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => handleDelete(f.id)}
+                      onClick={() => setDeleteTarget(f)}
                       className="text-red-500 text-xs font-semibold hover:underline"
                     >
                       <Trash2 size={14} className="inline mr-1" /> Delete
@@ -207,7 +213,7 @@ load()
                     {f.activityCount} {f.activityCount === 1 ? 'activity' : 'activities'}
                   </span>
                   <button
-                    onClick={() => handleDelete(f.id)}
+                    onClick={() => setDeleteTarget(f)}
                     className="inline-flex items-center gap-1 text-red-500 text-xs font-semibold"
                   >
                     <Trash2 size={13} /> Delete
@@ -302,6 +308,19 @@ load()
             </form>
           </div>
         </div>
+      )}
+      {deleteTarget && (
+        <ConfirmationDialog
+          title="Delete facilitator?"
+          message={`This will permanently delete ${deleteTarget.name}'s facilitator account. This action cannot be undone.`}
+          confirmLabel="Delete facilitator"
+          destructive
+          pending={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null)
+          }}
+        />
       )}
     </div>
   )

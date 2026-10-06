@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import ParticipantLayout from '../../layouts/ParticipantLayout'
 import { getProvinces, getCities, getBarangays } from '../../features/public/region11Data'
 import { User, Pencil, Save, X } from 'lucide-react'
+import ConfirmationDialog from '../../components/ConfirmationDialog'
 
 interface ParticipantRow {
   id: number
@@ -42,28 +43,40 @@ export default function ParticipantProfile() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmSave, setConfirmSave] = useState(false)
 
   useEffect(() => {
-    load()
-  }, [])
+    let active = true
+    void supabase.auth.getUser()
+      .then(async ({ data: { user } }) => {
+        if (!user) return null
+        const { data } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('user_uuid', user.id)
+          .single()
+        return data
+      })
+      .then((data) => {
+        if (!active) return
+        if (data) {
+          setRow(data)
+          setForm(data)
+        }
+        setLoading(false)
+      })
+      .catch((loadError: unknown) => {
+        console.error('Load participant profile error:', loadError)
+        if (active) {
+          setError('We could not load your profile. Please refresh and try again.')
+          setLoading(false)
+        }
+      })
 
-  async function load() {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
-
-    const { data } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('user_uuid', user.id)
-      .single()
-
-    if (data) {
-      setRow(data)
-      setForm(data)
+    return () => {
+      active = false
     }
-    setLoading(false)
-  }
+  }, [])
 
   function setField<K extends keyof ParticipantRow>(key: K, value: ParticipantRow[K]) {
     setForm((prev) => {
@@ -75,7 +88,7 @@ export default function ParticipantProfile() {
     })
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!form) return
     setError('')
 
@@ -85,6 +98,11 @@ export default function ParticipantProfile() {
       return setError('Contact must be a valid PH mobile number (09XXXXXXXXX).')
     }
 
+    setConfirmSave(true)
+  }
+
+  async function confirmProfileSave() {
+    if (!form) return
     setSaving(true)
     const age = form.birthday ? calcAge(form.birthday) : form.age
 
@@ -112,11 +130,13 @@ export default function ParticipantProfile() {
 
     if (updateError) {
       setError(updateError.message)
+      setConfirmSave(false)
       return
     }
 
     setRow(form)
     setEditing(false)
+    setConfirmSave(false)
   }
 
   function handleCancel() {
@@ -284,6 +304,18 @@ export default function ParticipantProfile() {
           </div>
         </section>
       </div>
+      {confirmSave && (
+        <ConfirmationDialog
+          title="Save profile changes?"
+          message="Your updated personal information will be saved to your participant profile."
+          confirmLabel="Save changes"
+          pending={saving}
+          onConfirm={confirmProfileSave}
+          onCancel={() => {
+            if (!saving) setConfirmSave(false)
+          }}
+        />
+      )}
     </ParticipantLayout>
   )
 }
