@@ -93,39 +93,39 @@ export default function CompleteProfile() {
     setSaving(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+      if (!user) {
       setSaving(false)
       setError('No logged in user found.')
-      return
-    }
+        return
+      }
 
-    const { error: insertError } = await supabase.from('participants').insert({
-      user_uuid: user.id,
-      email: user.email,
-      first_name: form.firstName,
-      middle_name: form.middleName || null,
-      last_name: form.lastName,
-      suffix: form.suffix || null,
-      birthday: form.birthday,
-      age,
-      gender_identity: form.gender,
-      contact: form.contact,
-      barangay: form.barangay,
-      city_municipality: form.city,
-      province: form.province,
-      organization: form.organization || null,
-      youth_classification: form.youthClass,
-      sectoral_group: form.sectoral || null,
-    })
+      const { error: insertError } = await supabase.from('participants').insert({
+        user_uuid: user.id,
+        email: user.email,
+        first_name: form.firstName,
+        middle_name: form.middleName || null,
+        last_name: form.lastName,
+        suffix: form.suffix || null,
+        birthday: form.birthday,
+        age,
+        gender_identity: form.gender,
+        contact: form.contact,
+        barangay: form.barangay,
+        city_municipality: form.city,
+        province: form.province,
+        organization: form.organization || null,
+        youth_classification: form.youthClass,
+        sectoral_group: form.sectoral || null,
+      })
 
     setSaving(false)
 
-    if (insertError) {
+      if (insertError) {
       setError(insertError.message)
-      return
-    }
+        return
+      }
 
-    navigate('/participant')
+      navigate('/participant')
   }
 
   return (

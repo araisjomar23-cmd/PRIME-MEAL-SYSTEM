@@ -74,28 +74,28 @@ export interface RegisterResult {
  */
 // FIX 3: Changed parameter type from 'string' to 'number' to match database 'integer'
 export async function registerParticipant(activityId: number): Promise<RegisterResult> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) {
+    if (!user) {
     return { ok: false, error: 'Please login first.' }
-  }
+    }
 
-  // Single atomic call — the lock inside the RPC handles the race.
-  const { data, error } = await supabase.rpc('register_participant', {
+    // Single atomic call — the lock inside the RPC handles the race.
+    const { data, error } = await supabase.rpc('register_participant', {
     p_activity_id: activityId, // Supabase maps the number variable cleanly to the integer input parameter
-  })
+    })
 
-  if (error) {
+    if (error) {
     return { ok: false, error: error.message }
-  }
+    }
 
   // Unpack array structure safely
-  const result = data?.[0]
-  if (!result?.success) {
+    const result = data?.[0]
+    if (!result?.success) {
     return { ok: false, error: result?.message || 'Registration failed.' }
-  }
+    }
 
-  return { ok: true, refCode: result.ref_code }
+    return { ok: true, refCode: result.ref_code }
 }

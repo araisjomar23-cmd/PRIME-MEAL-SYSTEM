@@ -80,29 +80,29 @@ export interface SubmitEvaluationPayload {
 export async function submitEvaluation(
   payload: SubmitEvaluationPayload
 ): Promise<{ ok: boolean; error?: string }> {
-  const { data: reg, error: regErr } = await supabase
-    .from('registrations')
-    .select('id, activity_id')
+    const { data: reg, error: regErr } = await supabase
+      .from('registrations')
+      .select('id, activity_id')
     .eq('ref_code', payload.refCode.trim().toUpperCase())
-    .single()
+      .single()
 
   if (regErr || !reg) {
     return { ok: false, error: 'Reference code not found. Please check and try again.' }
-  }
+    }
 
-  const { error } = await supabase.from('evaluations').insert({
-    registration_id: reg.id,
-    activity_id: reg.activity_id,
-    rating: payload.rating,
-    feedback: payload.feedback,
-    would_recommend: payload.wouldRecommend,
-    responses: payload.responses,
-    submitted_at: new Date().toISOString(),
-  })
+    const { error } = await supabase.from('evaluations').insert({
+      registration_id: reg.id,
+      activity_id: reg.activity_id,
+      rating: payload.rating,
+      feedback: payload.feedback,
+      would_recommend: payload.wouldRecommend,
+      responses: payload.responses,
+      submitted_at: new Date().toISOString(),
+    })
 
-  if (error) {
+    if (error) {
     return { ok: false, error: error.message }
-  }
+    }
 
-  return { ok: true }
+    return { ok: true }
 }

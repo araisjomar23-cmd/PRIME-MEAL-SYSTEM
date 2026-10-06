@@ -114,16 +114,16 @@ export default function ParticipantSignup() {
     }
 
     setLoading(true)
-    const { data, error: signupError } = await supabase.auth.signUp({ email, password })
+      const { data, error: signupError } = await supabase.auth.signUp({ email, password })
     setLoading(false)
 
-    if (signupError) {
+      if (signupError) {
       setError(signupError.message)
-      return
-    }
+        return
+      }
 
-    if (data.session) {
-      navigate('/participant/complete-profile')
+      if (data.session) {
+        navigate('/participant/complete-profile')
     }
   }
 

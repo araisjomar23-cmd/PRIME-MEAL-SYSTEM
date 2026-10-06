@@ -38,26 +38,26 @@ function ActivityModal({ activityId, onClose }: Props) {
     setError('')
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      sessionStorage.setItem('postLoginRedirect', `/?activity=${activity.id}`)
-      navigate('/admin/login')
-      return
-    }
+      if (!user) {
+        sessionStorage.setItem('postLoginRedirect', `/?activity=${activity.id}`)
+        navigate('/admin/login')
+        return
+      }
 
-    setSubmitting(true)
+      setSubmitting(true)
     const result = await registerParticipant(activity.id)
     setSubmitting(false)
 
-    if (!result.ok) {
-      if (result.error?.includes('complete your profile')) {
-        navigate('/participant/complete-profile')
+      if (!result.ok) {
+        if (result.error?.includes('complete your profile')) {
+          navigate('/participant/complete-profile')
+          return
+        }
+      setError(result.error || 'Registration failed.')
         return
       }
-      setError(result.error || 'Registration failed.')
-      return
-    }
 
-    setRefCode(result.refCode || '')
+      setRefCode(result.refCode || '')
   }
 
   const open = activity ? Math.max(0, activity.slots - activity.taken) : 0

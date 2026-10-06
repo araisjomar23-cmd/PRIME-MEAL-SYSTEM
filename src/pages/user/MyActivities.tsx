@@ -89,11 +89,11 @@ export default function MyActivities() {
           {activities.map((activity) => (
             <div key={activity.id} className="panel !p-0 overflow-hidden flex">
               <div className="w-1.5 shrink-0" style={{ backgroundColor: activity.colorBg }} />
-              <div className="p-5 flex-1 flex items-center justify-between flex-wrap gap-3">
-                <div>
+                <div className="p-5 flex-1 flex items-center justify-between flex-wrap gap-3">
+                  <div>
                   <h2 className="font-bold text-lg text-gray-900">{activity.title}</h2>
-                  <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
-                    <Calendar size={13} />
+                    <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
+                      <Calendar size={13} />
                     Registered {new Date(activity.registered_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
